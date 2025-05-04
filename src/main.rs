@@ -79,7 +79,9 @@ impl TrayWindow {
                 ID_QUIT => {
                     unsafe {
                         // Clean up the tray icon before quitting
-                        Shell_NotifyIconW(NIM_DELETE, &self.nid).ok();
+                        if let Err(e) = Shell_NotifyIconW(NIM_DELETE, &self.nid).ok() {
+                            error!("Failed to delete tray icon: {}", e);
+                        }
                         DestroyWindow(self.hwnd).ok();
                     }
                     true
@@ -89,7 +91,9 @@ impl TrayWindow {
             WM_CLOSE => {
                 unsafe {
                     // Clean up the tray icon before closing
-                    Shell_NotifyIconW(NIM_DELETE, &self.nid).ok();
+                    if let Err(e) = Shell_NotifyIconW(NIM_DELETE, &self.nid).ok() {
+                        error!("Failed to delete tray icon: {}", e);
+                    }
                     DestroyWindow(self.hwnd).ok();
                 }
                 true
@@ -97,7 +101,9 @@ impl TrayWindow {
             WM_DESTROY => {
                 unsafe {
                     // Clean up the tray icon before quitting
-                    Shell_NotifyIconW(NIM_DELETE, &self.nid).ok();
+                    if let Err(e) = Shell_NotifyIconW(NIM_DELETE, &self.nid).ok() {
+                        error!("Failed to delete tray icon: {}", e);
+                    }
                     PostQuitMessage(0);
                 }
                 true
