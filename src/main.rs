@@ -5,23 +5,19 @@ use clap::CommandFactory;
 use clap::FromArgMatches;
 use clap::Parser;
 use console_check::is_inheriting_console;
+use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
-use tracing::Subscriber;
 use tracing::debug;
 use tracing::error;
 use tracing::info;
-use tracing_subscriber::Layer;
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::fmt::time::FormatTime;
 use tracing_subscriber::fmt::time::SystemTime;
-use tracing_subscriber::fmt::writer::Tee;
-use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::Console::*;
@@ -31,9 +27,6 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::BOOL;
 use windows::core::w;
 use windy_error::WindyResult;
-use std::io::Stdout;
-use std::io::Write;
-use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 #[derive(Debug, Parser)]
 #[command(name = "youre-muted-btw", bin_name = "youre-muted-btw")]
@@ -106,6 +99,7 @@ impl TrayWindow {
                 }
                 ID_SHOW_LOGS => {
                     unsafe {
+                        hide_console_window();
                         if let Err(e) = AllocConsole() {
                             error!("Failed to allocate console: {}", e);
                         } else {
@@ -237,11 +231,11 @@ impl Write for DualWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         // Write to stdout
         self.stdout.write(buf)?;
-        
+
         // Write to buffer
         let mut buffer = self.buffer.lock().unwrap();
         buffer.extend_from_slice(buf);
-        
+
         Ok(buf.len())
     }
 
@@ -261,7 +255,7 @@ impl<'a> MakeWriter<'a> for DualWriter {
     }
 }
 
-fn setup_tracing(debug: bool, ran_from_console: bool) -> Arc<Mutex<Vec<u8>>> {
+fn setup_tracing(debug: bool) -> Arc<Mutex<Vec<u8>>> {
     let buffer = Arc::new(Mutex::new(Vec::new()));
 
     let subscriber = tracing_subscriber::fmt::SubscriberBuilder::default()
@@ -277,20 +271,14 @@ fn setup_tracing(debug: bool, ran_from_console: bool) -> Arc<Mutex<Vec<u8>>> {
         .with_thread_ids(false)
         .with_thread_names(false)
         .with_span_events(FmtSpan::NONE)
-        .with_timer(SystemTime::default());
-
-    if ran_from_console {
-        let subscriber = subscriber.finish();
-        subscriber.init();
-    } else {
-        // Use our dual writer
-        let writer = DualWriter {
+        .with_timer(SystemTime::default())
+        .with_writer(DualWriter {
             stdout: std::io::stdout(),
             buffer: buffer.clone(),
-        };
-        let subscriber = subscriber.with_writer(writer).finish();
-        subscriber.init();
-    }
+        })
+        .finish();
+
+    subscriber.init();
 
     buffer
 }
@@ -304,7 +292,7 @@ fn main() -> WindyResult<()> {
 
     let debug = args.global.debug;
     let ran_from_console = is_inheriting_console();
-    let log_buffer = setup_tracing(debug, ran_from_console);
+    let log_buffer = setup_tracing(debug);
     info!("Running from console: {}", ran_from_console);
 
     // Hide the console window at startup
