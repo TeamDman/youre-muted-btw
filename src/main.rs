@@ -1,12 +1,10 @@
 pub mod windy_error;
 
-use std::sync::OnceLock;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
-
 use clap::CommandFactory;
 use clap::FromArgMatches;
 use clap::Parser;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::*;
