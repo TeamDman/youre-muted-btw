@@ -3,6 +3,7 @@ pub mod windy_error;
 use clap::CommandFactory;
 use clap::FromArgMatches;
 use clap::Parser;
+use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::LibraryLoader::*;
@@ -32,6 +33,7 @@ const ID_QUIT: u32 = 3;
 
 struct TrayWindow {
     hwnd: HWND,
+    nid: NOTIFYICONDATAW,
 }
 
 impl TrayWindow {
@@ -50,7 +52,16 @@ impl TrayWindow {
                         let mut pt = POINT { x: 0, y: 0 };
                         GetCursorPos(&mut pt).unwrap();
                         SetForegroundWindow(self.hwnd).unwrap();
-                        TrackPopupMenu(hmenu, TPM_RIGHTBUTTON, pt.x, pt.y, Default::default(), self.hwnd, None).unwrap();
+                        TrackPopupMenu(
+                            hmenu,
+                            TPM_RIGHTBUTTON,
+                            pt.x,
+                            pt.y,
+                            Default::default(),
+                            self.hwnd,
+                            None,
+                        )
+                        .unwrap();
                         DestroyMenu(hmenu).unwrap();
                     }
                     true
@@ -58,25 +69,35 @@ impl TrayWindow {
                     false
                 }
             }
-            WM_COMMAND => {
-                match wparam.0 as u32 {
-                    ID_HELLO => {
-                        unsafe {
-                            MessageBoxW(Some(self.hwnd), w!("Hello from tray!"), w!("Hello"), MB_OK);
-                        }
-                        true
+            WM_COMMAND => match wparam.0 as u32 {
+                ID_HELLO => {
+                    unsafe {
+                        MessageBoxW(Some(self.hwnd), w!("Hello from tray!"), w!("Hello"), MB_OK);
                     }
-                    ID_QUIT => {
-                        unsafe {
-                            PostQuitMessage(0);
-                        }
-                        true
-                    }
-                    _ => false,
+                    true
                 }
+                ID_QUIT => {
+                    unsafe {
+                        // Clean up the tray icon before quitting
+                        Shell_NotifyIconW(NIM_DELETE, &self.nid).ok();
+                        DestroyWindow(self.hwnd).ok();
+                    }
+                    true
+                }
+                _ => false,
+            },
+            WM_CLOSE => {
+                unsafe {
+                    // Clean up the tray icon before closing
+                    Shell_NotifyIconW(NIM_DELETE, &self.nid).ok();
+                    DestroyWindow(self.hwnd).ok();
+                }
+                true
             }
             WM_DESTROY => {
                 unsafe {
+                    // Clean up the tray icon before quitting
+                    Shell_NotifyIconW(NIM_DELETE, &self.nid).ok();
                     PostQuitMessage(0);
                 }
                 true
@@ -93,14 +114,17 @@ unsafe extern "system" fn window_proc(
     lparam: LPARAM,
 ) -> LRESULT {
     if message == WM_CREATE {
-        let window = Box::new(TrayWindow { hwnd });
-        unsafe {SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _)};
+        let window = Box::new(TrayWindow {
+            hwnd,
+            nid: Default::default(),
+        });
+        unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _) };
         return LRESULT(0);
     }
 
-    let user_data = unsafe {GetWindowLongPtrW(hwnd, GWLP_USERDATA)};
+    let user_data = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) };
     if user_data == 0 {
-        return unsafe {DefWindowProcW(hwnd, message, wparam, lparam)};
+        return unsafe { DefWindowProcW(hwnd, message, wparam, lparam) };
     }
 
     let window = unsafe { &mut *(user_data as *mut TrayWindow) };
@@ -195,11 +219,16 @@ fn main() -> WindyResult<()> {
         };
 
         // Set tooltip
-        let tooltip = w!("You're Muted Btw - This app warns when you're trying to talk while muted");
+        let tooltip =
+            w!("You're Muted Btw - This app warns when you're trying to talk while muted");
         let tooltip_bytes = tooltip.as_wide();
         nid.szTip[..tooltip_bytes.len()].copy_from_slice(tooltip_bytes);
 
         Shell_NotifyIconW(NIM_ADD, &nid).ok()?;
+
+        // Store the nid in the window
+        let window = Box::new(TrayWindow { hwnd, nid });
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
 
         // Message loop
         let mut msg = MSG::default();
@@ -208,8 +237,12 @@ fn main() -> WindyResult<()> {
             DispatchMessageW(&msg);
         }
 
-        // Cleanup
-        Shell_NotifyIconW(NIM_DELETE, &nid).ok()?;
+        // Final cleanup
+        if let Some(window) = (GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut TrayWindow).as_mut() {
+            if let Err(e) = Shell_NotifyIconW(NIM_DELETE, &window.nid).ok() {
+                error!("Failed to delete tray icon: {}", e);
+            }
+        }
         DestroyIcon(icon)?;
     }
 
