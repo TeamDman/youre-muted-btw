@@ -195,7 +195,7 @@ fn main() -> WindyResult<()> {
         };
 
         // Set tooltip
-        let tooltip = w!("Tray Icon App");
+        let tooltip = w!("You're Muted Btw - This app warns when you're trying to talk while muted");
         let tooltip_bytes = tooltip.as_wide();
         nid.szTip[..tooltip_bytes.len()].copy_from_slice(tooltip_bytes);
 
