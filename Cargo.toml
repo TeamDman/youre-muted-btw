@@ -1,0 +1,18 @@
+[package]
+name = "youre-muted-btw"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.37", features = ["derive"] }
+color-eyre = "0.6.4"
+eyre = "0.6.12"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+windows = {version="0.61.1",features=[
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+]}
