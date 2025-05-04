@@ -33,7 +33,8 @@ pub struct GlobalArgs {
 const WM_TRAYICON: u32 = WM_USER + 1;
 const ID_TRAYICON: u32 = 1;
 const ID_HELLO: u32 = 2;
-const ID_QUIT: u32 = 3;
+const ID_SHOW_LOGS: u32 = 3;
+const ID_QUIT: u32 = 4;
 
 struct TrayWindow {
     hwnd: HWND,
@@ -48,9 +49,12 @@ impl TrayWindow {
                     unsafe {
                         let hmenu = CreatePopupMenu().unwrap();
                         let hello_text = w!("Hello!");
+                        let show_logs_text = w!("Show logs");
                         let quit_text = w!("Quit");
 
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
+                        AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
+                            .unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
 
                         let mut pt = POINT { x: 0, y: 0 };
@@ -78,6 +82,15 @@ impl TrayWindow {
                     unsafe {
                         MessageBoxW(Some(self.hwnd), w!("Hello from tray!"), w!("Hello"), MB_OK);
                     }
+                    true
+                }
+                ID_SHOW_LOGS => {
+                    unsafe {
+                        if let Err(e) = AllocConsole() {
+                            error!("Failed to allocate console: {}", e);
+                        }
+                    }
+                    info!("Console allocated, new logs will be visible");
                     true
                 }
                 ID_QUIT => {
@@ -172,6 +185,14 @@ unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
 
 static OUR_HWND: AtomicUsize = AtomicUsize::new(0);
 
+fn hide_console_window() {
+    unsafe {
+        if let Err(e) = FreeConsole() {
+            error!("Failed to free console: {}", e);
+        }
+    }
+}
+
 fn main() -> WindyResult<()> {
     color_eyre::install()?;
 
@@ -192,6 +213,9 @@ fn main() -> WindyResult<()> {
         .init();
 
     info!("Starting tray icon application");
+
+    // Hide the console window at startup
+    hide_console_window();
 
     unsafe {
         let instance = {
