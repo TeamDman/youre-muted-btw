@@ -103,6 +103,11 @@ impl TrayWindow {
                         if let Err(e) = AllocConsole() {
                             error!("Failed to allocate console: {}", e);
                         } else {
+                            // Set up console control handler for the new console
+                            if let Err(e) = SetConsoleCtrlHandler(Some(ctrl_handler), true) {
+                                error!("Failed to set console control handler: {}", e);
+                            }
+
                             // Replay buffered logs
                             if let Ok(buffer) = self.log_buffer.lock() {
                                 if let Ok(logs) = String::from_utf8(buffer.clone()) {
@@ -112,7 +117,7 @@ impl TrayWindow {
                                 }
                             }
                             info!("Console allocated, new logs will be visible");
-                            debug!("Spawning new thread for a message after 1 second");
+                            info!("Closing this window will exit the program");
                             thread::spawn(move || {
                                 thread::sleep(Duration::from_secs(5));
                                 info!("Ahoy, there!");
@@ -195,14 +200,9 @@ unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
             let hwnd_val = OUR_HWND.load(Ordering::SeqCst);
             if hwnd_val != 0 {
                 let hwnd = HWND(hwnd_val as *mut _);
-                // If we have our window, ask it to close itself:
-                if let Err(e) = unsafe { PostMessageW(Some(hwnd), WM_CLOSE, WPARAM(0), LPARAM(0)) }
-                {
-                    error!("Failed to post close message: {}", e);
-                    FALSE
-                } else {
-                    TRUE
-                }
+                // SendMessageW will synchronously pump the message and wait for it to finish
+                let _result = unsafe { SendMessageW(hwnd, WM_CLOSE, None, None) };
+                TRUE
             } else {
                 error!("No window handle available for cleanup");
                 FALSE
