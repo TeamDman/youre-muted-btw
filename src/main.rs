@@ -20,7 +20,7 @@ use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::fmt::time::FormatTime;
 use tracing_subscriber::fmt::time::SystemTime;
-use tracing_subscriber::fmt::writer::MakeWriterExt;
+use tracing_subscriber::fmt::writer::Tee;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use windows::Win32::Foundation::*;
@@ -31,6 +31,9 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::BOOL;
 use windows::core::w;
 use windy_error::WindyResult;
+use std::io::Stdout;
+use std::io::Write;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 #[derive(Debug, Parser)]
 #[command(name = "youre-muted-btw", bin_name = "youre-muted-btw")]
@@ -225,27 +228,34 @@ fn hide_console_window() {
     }
 }
 
-struct BufferedWriter {
+struct DualWriter {
+    stdout: std::io::Stdout,
     buffer: Arc<Mutex<Vec<u8>>>,
 }
 
-impl std::io::Write for BufferedWriter {
+impl Write for DualWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        // Write to stdout
+        self.stdout.write(buf)?;
+        
+        // Write to buffer
         let mut buffer = self.buffer.lock().unwrap();
         buffer.extend_from_slice(buf);
+        
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
+        self.stdout.flush()
     }
 }
 
-impl<'a> MakeWriter<'a> for BufferedWriter {
+impl<'a> MakeWriter<'a> for DualWriter {
     type Writer = Self;
 
     fn make_writer(&'a self) -> Self::Writer {
-        BufferedWriter {
+        DualWriter {
+            stdout: std::io::stdout(),
             buffer: self.buffer.clone(),
         }
     }
@@ -253,9 +263,6 @@ impl<'a> MakeWriter<'a> for BufferedWriter {
 
 fn setup_tracing(debug: bool, ran_from_console: bool) -> Arc<Mutex<Vec<u8>>> {
     let buffer = Arc::new(Mutex::new(Vec::new()));
-    let buffered_writer = BufferedWriter {
-        buffer: buffer.clone(),
-    };
 
     let subscriber = tracing_subscriber::fmt::SubscriberBuilder::default()
         .with_file(true)
@@ -276,7 +283,12 @@ fn setup_tracing(debug: bool, ran_from_console: bool) -> Arc<Mutex<Vec<u8>>> {
         let subscriber = subscriber.finish();
         subscriber.init();
     } else {
-        let subscriber = subscriber.with_writer(buffered_writer).finish();
+        // Use our dual writer
+        let writer = DualWriter {
+            stdout: std::io::stdout(),
+            buffer: buffer.clone(),
+        };
+        let subscriber = subscriber.with_writer(writer).finish();
         subscriber.init();
     }
 
