@@ -1,12 +1,28 @@
+pub mod console_check;
 pub mod windy_error;
 
 use clap::CommandFactory;
 use clap::FromArgMatches;
 use clap::Parser;
+use console_check::is_inheriting_console;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
+use std::thread;
+use std::time::Duration;
+use tracing::Subscriber;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
+use tracing_subscriber::Layer;
+use tracing_subscriber::fmt::MakeWriter;
+use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::fmt::time::FormatTime;
+use tracing_subscriber::fmt::time::SystemTime;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::Console::*;
 use windows::Win32::System::LibraryLoader::*;
@@ -39,6 +55,7 @@ const ID_QUIT: u32 = 4;
 struct TrayWindow {
     hwnd: HWND,
     nid: NOTIFYICONDATAW,
+    log_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 impl TrayWindow {
@@ -88,9 +105,23 @@ impl TrayWindow {
                     unsafe {
                         if let Err(e) = AllocConsole() {
                             error!("Failed to allocate console: {}", e);
+                        } else {
+                            // Replay buffered logs
+                            if let Ok(buffer) = self.log_buffer.lock() {
+                                if let Ok(logs) = String::from_utf8(buffer.clone()) {
+                                    println!("=== Previous logs ===");
+                                    println!("{}", logs);
+                                    println!("=== End of previous logs ===");
+                                }
+                            }
+                            info!("Console allocated, new logs will be visible");
+                            debug!("Spawning new thread for a message after 1 second");
+                            thread::spawn(move || {
+                                thread::sleep(Duration::from_secs(5));
+                                info!("Ahoy, there!");
+                            });
                         }
                     }
-                    info!("Console allocated, new logs will be visible");
                     true
                 }
                 ID_QUIT => {
@@ -140,6 +171,7 @@ unsafe extern "system" fn window_proc(
         let window = Box::new(TrayWindow {
             hwnd,
             nid: Default::default(),
+            log_buffer: Arc::new(Mutex::new(Vec::new())),
         });
         unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _) };
         return LRESULT(0);
@@ -193,15 +225,39 @@ fn hide_console_window() {
     }
 }
 
-fn main() -> WindyResult<()> {
-    color_eyre::install()?;
+struct BufferedWriter {
+    buffer: Arc<Mutex<Vec<u8>>>,
+}
 
-    let mut cmd = Args::command();
-    cmd = cmd.version(env!("CARGO_PKG_VERSION"));
-    let args = Args::from_arg_matches(&cmd.get_matches())?;
+impl std::io::Write for BufferedWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let mut buffer = self.buffer.lock().unwrap();
+        buffer.extend_from_slice(buf);
+        Ok(buf.len())
+    }
 
-    let debug = args.global.debug;
-    tracing_subscriber::fmt::SubscriberBuilder::default()
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl<'a> MakeWriter<'a> for BufferedWriter {
+    type Writer = Self;
+
+    fn make_writer(&'a self) -> Self::Writer {
+        BufferedWriter {
+            buffer: self.buffer.clone(),
+        }
+    }
+}
+
+fn setup_tracing(debug: bool, ran_from_console: bool) -> Arc<Mutex<Vec<u8>>> {
+    let buffer = Arc::new(Mutex::new(Vec::new()));
+    let buffered_writer = BufferedWriter {
+        buffer: buffer.clone(),
+    };
+
+    let subscriber = tracing_subscriber::fmt::SubscriberBuilder::default()
         .with_file(true)
         .with_line_number(true)
         .with_level(true)
@@ -210,12 +266,44 @@ fn main() -> WindyResult<()> {
             true => tracing::level_filters::LevelFilter::DEBUG,
             false => tracing::level_filters::LevelFilter::INFO,
         })
-        .init();
+        .with_ansi(true)
+        .with_thread_ids(false)
+        .with_thread_names(false)
+        .with_span_events(FmtSpan::NONE)
+        .with_timer(SystemTime::default());
 
-    info!("Starting tray icon application");
+    if ran_from_console {
+        let subscriber = subscriber.finish();
+        subscriber.init();
+    } else {
+        let subscriber = subscriber.with_writer(buffered_writer).finish();
+        subscriber.init();
+    }
+
+    buffer
+}
+
+fn main() -> WindyResult<()> {
+    color_eyre::install()?;
+
+    let mut cmd = Args::command();
+    cmd = cmd.version(env!("CARGO_PKG_VERSION"));
+    let args = Args::from_arg_matches(&cmd.get_matches())?;
+
+    let debug = args.global.debug;
+    let ran_from_console = is_inheriting_console();
+    let log_buffer = setup_tracing(debug, ran_from_console);
+    info!("Running from console: {}", ran_from_console);
 
     // Hide the console window at startup
-    hide_console_window();
+    if ran_from_console {
+        debug!("Already running from terminal, no need to hide console window");
+    } else {
+        debug!("Not launched from a console, hiding the default one");
+        hide_console_window();
+    }
+
+    info!("Starting tray icon application");
 
     unsafe {
         let instance = {
@@ -294,7 +382,11 @@ fn main() -> WindyResult<()> {
         Shell_NotifyIconW(NIM_ADD, &nid).ok()?;
 
         // Store the nid in the window
-        let window = Box::new(TrayWindow { hwnd, nid });
+        let window = Box::new(TrayWindow {
+            hwnd,
+            nid,
+            log_buffer,
+        });
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
 
         // Message loop
