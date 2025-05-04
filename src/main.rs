@@ -1,14 +1,20 @@
 pub mod windy_error;
 
+use std::sync::OnceLock;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
+
 use clap::CommandFactory;
 use clap::FromArgMatches;
 use clap::Parser;
 use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::*;
+use windows::Win32::System::Console::*;
 use windows::Win32::System::LibraryLoader::*;
 use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
+use windows::core::BOOL;
 use windows::core::w;
 use windy_error::WindyResult;
 
@@ -141,6 +147,33 @@ unsafe extern "system" fn window_proc(
     }
 }
 
+unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
+    match ctrl_type {
+        CTRL_C_EVENT | CTRL_BREAK_EVENT | CTRL_CLOSE_EVENT | CTRL_LOGOFF_EVENT
+        | CTRL_SHUTDOWN_EVENT => {
+            info!("Received shutdown signal, cleaning up...");
+            let hwnd_val = OUR_HWND.load(Ordering::SeqCst);
+            if hwnd_val != 0 {
+                let hwnd = HWND(hwnd_val as *mut _);
+                // If we have our window, ask it to close itself:
+                if let Err(e) = unsafe { PostMessageW(Some(hwnd), WM_CLOSE, WPARAM(0), LPARAM(0)) }
+                {
+                    error!("Failed to post close message: {}", e);
+                    FALSE
+                } else {
+                    TRUE
+                }
+            } else {
+                error!("No window handle available for cleanup");
+                FALSE
+            }
+        }
+        _ => FALSE,
+    }
+}
+
+static OUR_HWND: AtomicUsize = AtomicUsize::new(0);
+
 fn main() -> WindyResult<()> {
     color_eyre::install()?;
 
@@ -196,6 +229,12 @@ fn main() -> WindyResult<()> {
             Some(instance.into()),
             None,
         )?;
+        OUR_HWND.store(hwnd.0 as usize, Ordering::SeqCst);
+
+        info!("Window handle set");
+
+        // Set up Ctrl+C handler
+        SetConsoleCtrlHandler(Some(ctrl_handler), true)?;
 
         // Load the icon
         let icon_path = w!("favicon.ico");
