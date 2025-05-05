@@ -46,12 +46,16 @@ const WM_TRAYICON: u32 = WM_USER + 1;
 const ID_TRAYICON: u32 = 1;
 const ID_HELLO: u32 = 2;
 const ID_SHOW_LOGS: u32 = 3;
+const ID_HIDE_LOGS: u32 = 5;
 const ID_QUIT: u32 = 4;
 
 struct TrayWindow {
     hwnd: HWND,
     nid: NOTIFYICONDATAW,
+    /// Logs are stored in a buffer to be displayed in the console when the user clicks show logs
     log_buffer: Arc<Mutex<Vec<u8>>>,
+    /// Has the user clicked show logs button at least once
+    console_shown: bool,
 }
 
 impl TrayWindow {
@@ -63,11 +67,16 @@ impl TrayWindow {
                         let hmenu = CreatePopupMenu().unwrap();
                         let hello_text = w!("Hello!");
                         let show_logs_text = w!("Show logs");
+                        let hide_logs_text = w!("Hide logs");
                         let quit_text = w!("Quit");
 
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
                             .unwrap();
+                        if self.console_shown {
+                            AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
+                                .unwrap();
+                        }
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
 
                         let mut pt = POINT { x: 0, y: 0 };
@@ -103,6 +112,7 @@ impl TrayWindow {
                         if let Err(e) = AllocConsole() {
                             error!("Failed to allocate console: {}", e);
                         } else {
+                            self.console_shown = true;
                             // Set up console control handler for the new console
                             if let Err(e) = SetConsoleCtrlHandler(Some(ctrl_handler), true) {
                                 error!("Failed to set console control handler: {}", e);
@@ -116,14 +126,23 @@ impl TrayWindow {
                                     println!("=== End of previous logs ===");
                                 }
                             }
-                            info!("Console allocated, new logs will be visible");
+                            info!("Console allocated, new logs will be visible here");
                             info!("Closing this window will exit the program");
+                            info!(
+                                "The system tray icon now has a 'Hide logs' option if you want to close this window without exiting the program"
+                            );
                             thread::spawn(move || {
                                 thread::sleep(Duration::from_secs(5));
                                 info!("Ahoy, there!");
                             });
                         }
                     }
+                    true
+                }
+                ID_HIDE_LOGS => {
+                    hide_console_window();
+                    self.console_shown = false;
+                    info!("Console hidden");
                     true
                 }
                 ID_QUIT => {
@@ -174,6 +193,7 @@ unsafe extern "system" fn window_proc(
             hwnd,
             nid: Default::default(),
             log_buffer: Arc::new(Mutex::new(Vec::new())),
+            console_shown: false,
         });
         unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _) };
         return LRESULT(0);
@@ -216,6 +236,7 @@ static OUR_HWND: AtomicUsize = AtomicUsize::new(0);
 
 fn hide_console_window() {
     unsafe {
+        info!("Detaching from this console, ctrl+c will no longer work and you will have to use the system tray icon to close the program");
         if let Err(e) = FreeConsole() {
             error!("Failed to free console: {}", e);
         }
@@ -386,6 +407,7 @@ fn main() -> WindyResult<()> {
             hwnd,
             nid,
             log_buffer,
+            console_shown: false,
         });
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
 
