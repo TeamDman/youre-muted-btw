@@ -48,6 +48,7 @@ const ID_HELLO: u32 = 2;
 const ID_SHOW_LOGS: u32 = 3;
 const ID_HIDE_LOGS: u32 = 5;
 const ID_QUIT: u32 = 4;
+const ID_OPEN: u32 = 6;
 
 struct TrayWindow {
     hwnd: HWND,
@@ -65,11 +66,13 @@ impl TrayWindow {
                 if lparam.0 as u32 == WM_RBUTTONUP {
                     unsafe {
                         let hmenu = CreatePopupMenu().unwrap();
+                        let open_text = w!("Open");
                         let hello_text = w!("Hello!");
                         let show_logs_text = w!("Show logs");
                         let hide_logs_text = w!("Hide logs");
                         let quit_text = w!("Quit");
 
+                        AppendMenuW(hmenu, MF_STRING, ID_OPEN as usize, open_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
                             .unwrap();
@@ -95,11 +98,18 @@ impl TrayWindow {
                         DestroyMenu(hmenu).unwrap();
                     }
                     true
+                } else if lparam.0 as u32 == WM_LBUTTONUP {
+                    info!("Hello from tray icon click!");
+                    true
                 } else {
                     false
                 }
             }
             WM_COMMAND => match wparam.0 as u32 {
+                ID_OPEN => {
+                    info!("Open menu item clicked");
+                    true
+                }
                 ID_HELLO => {
                     unsafe {
                         MessageBoxW(Some(self.hwnd), w!("Hello from tray!"), w!("Hello"), MB_OK);
