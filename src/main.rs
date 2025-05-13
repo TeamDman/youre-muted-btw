@@ -1,5 +1,6 @@
 pub mod console_check;
 pub mod windy_error;
+pub mod gui;
 
 use clap::CommandFactory;
 use clap::FromArgMatches;
@@ -100,6 +101,9 @@ impl TrayWindow {
                     true
                 } else if lparam.0 as u32 == WM_LBUTTONUP {
                     info!("Hello from tray icon click!");
+                    thread::spawn(|| {
+                        gui::main();
+                    });
                     true
                 } else {
                     false
