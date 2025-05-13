@@ -102,7 +102,7 @@ impl TrayWindow {
                 } else if lparam.0 as u32 == WM_LBUTTONUP {
                     info!("Hello from tray icon click!");
                     thread::spawn(|| {
-                        gui::main();
+                        gui::main().unwrap();
                     });
                     true
                 } else {
@@ -320,6 +320,18 @@ fn setup_tracing(debug: bool) -> Arc<Mutex<Vec<u8>>> {
 
 fn main() -> WindyResult<()> {
     color_eyre::install()?;
+
+    let panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        tracing::error!(
+            "Panic encountered at {}",
+            info.location()
+                .map(|x| x.to_string())
+                .unwrap_or("unknown location".to_string())
+        );
+        panic_hook(info);
+    }));
+
 
     let mut cmd = Args::command();
     cmd = cmd.version(env!("CARGO_PKG_VERSION"));

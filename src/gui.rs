@@ -1,10 +1,15 @@
 use eframe::egui;
+use winit::platform::windows::EventLoopBuilderExtWindows;
 
 pub fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
+        event_loop_builder: Some(Box::new(|builder| {
+            builder.with_any_thread(true);
+        })),
         viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
         ..Default::default()
     };
+
     eframe::run_native(
         "My egui App",
         options,
