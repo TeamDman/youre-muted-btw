@@ -1,0 +1,13 @@
+[package]
+name = "ymb_console"
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+windows.workspace = true
+tracing.workspace = true
+ymb_logs.workspace = true
+ymb_lifecycle.workspace = true

@@ -1,10 +1,23 @@
-[package]
-name = "youre-muted-btw"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = ["crates/*"]
 
-[dependencies]
-bevy = "0.16.0"
+[workspace.package]
+authors = ["TeamDman"]
+repository = "https://github.com/TeamDman/youre-muted-btw.git"
+edition = "2024"
+license = "MPL-2.0"
+version = "0.1.0"
+
+[workspace.dependencies]
+ymb_args = { path = "crates/args" }
+ymb_tray = { path = "crates/tray" }
+ymb_windy = { path = "crates/windy" }
+ymb_lifecycle = { path = "crates/lifecycle" }
+ymb_console = { path = "crates/console" }
+ymb_logs = { path = "crates/logs" }
+ymb_welcome_gui = { path = "crates/welcome_gui" }
+
+bevy = { version = "0.16.0" }
 clap = { version = "4.5.37", features = ["derive"] }
 color-eyre = "0.6.4"
 eyre = "0.6.12"
@@ -20,3 +33,25 @@ windows = { version = "0.61.1", features = [
     "Win32_Storage",
     "Win32_Storage_FileSystem",
 ] }
+
+
+[package]
+name = "youre-muted-btw"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+clap.workspace = true
+color-eyre.workspace = true
+eyre.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+ymb_args.workspace = true
+ymb_tray.workspace = true
+ymb_windy.workspace = true
+windows.workspace = true
+ymb_logs.workspace = true
+ymb_console.workspace = true
