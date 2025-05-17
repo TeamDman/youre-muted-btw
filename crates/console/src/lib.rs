@@ -1,17 +1,13 @@
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
-use tracing::debug;
 use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::Console::GetConsoleProcessList;
 use windows::Win32::System::Console::*;
-use windows::Win32::System::LibraryLoader::*;
-use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::BOOL;
-use windows::core::w;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
@@ -64,7 +60,7 @@ pub fn show_console_window(log_buffer: LogBuffer) {
         if let Ok(buffer) = log_buffer.lock() {
             if let Ok(logs) = String::from_utf8(buffer.clone()) {
                 println!("=== Previous logs ===");
-                println!("{}", logs);
+                println!("{logs}");
                 println!("=== End of previous logs ===");
             }
         }
@@ -84,9 +80,9 @@ pub fn is_inheriting_console() -> bool {
     // https://learn.microsoft.com/en-us/windows/console/getconsoleprocesslist
     let mut buffer = [0u32; 1];
     let rtn = unsafe { GetConsoleProcessList(&mut buffer) };
-    println!("GetConsoleProcessList returned: {}", rtn);
-    let is_standalone = rtn != 1;
-    return is_standalone;
+    println!("GetConsoleProcessList returned: {rtn}");
+    
+    rtn != 1
 }
 
 #[cfg(test)]

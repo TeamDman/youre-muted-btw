@@ -1,4 +1,3 @@
-use clap::CommandFactory;
 use clap::FromArgMatches;
 use clap::Parser;
 

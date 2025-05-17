@@ -3,13 +3,6 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
-use std::thread;
-use std::time::Duration;
-use tracing::debug;
-use tracing::error;
-use tracing::info;
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::fmt::time::SystemTime;
@@ -81,7 +74,7 @@ pub fn setup_tracing(debug: bool) -> LogBuffer {
         .with_thread_ids(false)
         .with_thread_names(false)
         .with_span_events(FmtSpan::NONE)
-        .with_timer(SystemTime::default())
+        .with_timer(SystemTime)
         .with_writer(DualWriter {
             stdout: std::io::stdout(),
             buffer: buffer.clone(),

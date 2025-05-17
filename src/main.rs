@@ -5,27 +5,8 @@ use ymb_console::hide_console_window;
 use ymb_console::is_inheriting_console;
 use ymb_logs::setup_tracing;
 use ymb_windy::WindyResult;
-use std::io::Write;
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
-use std::thread;
-use std::time::Duration;
 use tracing::debug;
-use tracing::error;
 use tracing::info;
-use tracing_subscriber::fmt::MakeWriter;
-use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::fmt::time::SystemTime;
-use tracing_subscriber::util::SubscriberInitExt;
-use windows::Win32::Foundation::*;
-use windows::Win32::System::Console::*;
-use windows::Win32::System::LibraryLoader::*;
-use windows::Win32::UI::Shell::*;
-use windows::Win32::UI::WindowsAndMessaging::*;
-use windows::core::BOOL;
-use windows::core::w;
 
 fn main() -> WindyResult<()> {
     color_eyre::install()?;
