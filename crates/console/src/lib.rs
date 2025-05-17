@@ -1,6 +1,7 @@
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::*;
@@ -79,7 +80,10 @@ pub fn is_inheriting_console() -> bool {
     // https://learn.microsoft.com/en-us/windows/console/getconsoleprocesslist
     let mut buffer = [0u32; 1];
     let rtn = unsafe { GetConsoleProcessList(&mut buffer) };
-    println!("GetConsoleProcessList returned: {rtn}");
+    debug!(
+        "GetConsoleProcessList returned: {rtn}, inheriting console: {}",
+        rtn != 1
+    );
 
     rtn != 1
 }

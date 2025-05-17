@@ -8,3 +8,4 @@ version.workspace = true
 
 [dependencies]
 windows.workspace=true
+ymb_args.workspace=true

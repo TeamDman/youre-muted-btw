@@ -7,6 +7,8 @@ use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::fmt::time::SystemTime;
 use tracing_subscriber::util::SubscriberInitExt;
+
+/// Logs are stored in a buffer to be displayed in the console when the user clicks show logs
 #[derive(Debug, Clone, Default)]
 pub struct LogBuffer {
     buffer: Arc<Mutex<Vec<u8>>>,
@@ -25,7 +27,7 @@ impl DerefMut for LogBuffer {
 }
 
 struct DualWriter {
-    stdout: std::io::Stdout,
+    stdout: std::io::Stderr,
     buffer: Arc<Mutex<Vec<u8>>>,
 }
 
@@ -51,7 +53,7 @@ impl<'a> MakeWriter<'a> for DualWriter {
 
     fn make_writer(&'a self) -> Self::Writer {
         DualWriter {
-            stdout: std::io::stdout(),
+            stdout: std::io::stderr(),
             buffer: self.buffer.clone(),
         }
     }
@@ -75,7 +77,7 @@ pub fn setup_tracing(debug: bool) -> LogBuffer {
         .with_span_events(FmtSpan::NONE)
         .with_timer(SystemTime)
         .with_writer(DualWriter {
-            stdout: std::io::stdout(),
+            stdout: std::io::stderr(),
             buffer: buffer.clone(),
         })
         .finish();

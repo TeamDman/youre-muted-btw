@@ -14,3 +14,4 @@ tracing.workspace=true
 ymb_windy.workspace=true
 ymb_console.workspace=true
 ymb_lifecycle.workspace=true
+ymb_args.workspace=true

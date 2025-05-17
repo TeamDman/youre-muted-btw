@@ -1,5 +1,6 @@
 use std::sync::atomic::Ordering;
 use std::thread;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::*;
@@ -8,9 +9,11 @@ use windows::Win32::System::LibraryLoader::*;
 use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::w;
+use ymb_args::GlobalArgs;
 use ymb_console::ctrl_handler;
 use ymb_console::hide_console_window;
 use ymb_console::show_console_window;
+use ymb_lifecycle::GLOBAL_ARGS;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
@@ -27,8 +30,8 @@ const ID_OPEN: u32 = 6;
 struct TrayWindow {
     hwnd: HWND,
     nid: NOTIFYICONDATAW,
-    /// Logs are stored in a buffer to be displayed in the console when the user clicks show logs
     log_buffer: LogBuffer,
+    global_args: GlobalArgs,
 }
 
 impl TrayWindow {
@@ -72,8 +75,9 @@ impl TrayWindow {
                     true
                 } else if lparam.0 as u32 == WM_LBUTTONUP {
                     info!("Hello from tray icon click!");
-                    thread::spawn(|| {
-                        ymb_welcome_gui::main().unwrap();
+                    let global_args = self.global_args.clone();
+                    thread::spawn(move || {
+                        ymb_welcome_gui::main(&global_args).unwrap();
                     });
                     true
                 } else {
@@ -92,10 +96,8 @@ impl TrayWindow {
                     true
                 }
                 ID_SHOW_LOGS => {
-                    unsafe {
-                        hide_console_window();
-                        show_console_window(self.log_buffer.clone());
-                    }
+                    hide_console_window();
+                    show_console_window(self.log_buffer.clone());
                     true
                 }
                 ID_HIDE_LOGS => {
@@ -130,7 +132,7 @@ impl TrayWindow {
                 unsafe {
                     // Clean up the tray icon before quitting
                     if let Err(e) = Shell_NotifyIconW(NIM_DELETE, &self.nid).ok() {
-                        error!("Failed to delete tray icon: {}", e);
+                        debug!("Failed to delete tray icon, this always happens :P {}", e);
                     }
                     PostQuitMessage(0);
                 }
@@ -152,6 +154,7 @@ unsafe extern "system" fn window_proc(
             hwnd,
             nid: Default::default(),
             log_buffer: Default::default(),
+            global_args: GLOBAL_ARGS.get().unwrap().clone(),
         });
         unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _) };
         return LRESULT(0);
@@ -170,7 +173,7 @@ unsafe extern "system" fn window_proc(
     }
 }
 
-pub fn main(log_buffer: LogBuffer) -> WindyResult<()> {
+pub fn main(global_args: GlobalArgs, log_buffer: LogBuffer) -> WindyResult<()> {
     unsafe {
         let instance = {
             let mut out = Default::default();
@@ -252,6 +255,7 @@ pub fn main(log_buffer: LogBuffer) -> WindyResult<()> {
             hwnd,
             nid,
             log_buffer,
+            global_args
         });
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
 
@@ -265,7 +269,7 @@ pub fn main(log_buffer: LogBuffer) -> WindyResult<()> {
         // Final cleanup
         if let Some(window) = (GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut TrayWindow).as_mut() {
             if let Err(e) = Shell_NotifyIconW(NIM_DELETE, &window.nid).ok() {
-                error!("Failed to delete tray icon: {}", e);
+                debug!("Failed to delete tray icon, this always happens :P {}", e);
             }
         }
         DestroyIcon(icon)?;

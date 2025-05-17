@@ -52,6 +52,6 @@ tracing-subscriber.workspace = true
 ymb_args.workspace = true
 ymb_tray.workspace = true
 ymb_windy.workspace = true
-windows.workspace = true
 ymb_logs.workspace = true
 ymb_console.workspace = true
+ymb_lifecycle.workspace = true

@@ -5233,6 +5233,7 @@ name = "ymb_lifecycle"
 version = "0.1.0"
 dependencies = [
  "windows 0.61.1",
+ "ymb_args",
 ]
 
 [[package]]
@@ -5249,6 +5250,7 @@ version = "0.1.0"
 dependencies = [
  "tracing",
  "windows 0.61.1",
+ "ymb_args",
  "ymb_console",
  "ymb_lifecycle",
  "ymb_logs",
@@ -5262,6 +5264,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "eyre",
+ "ymb_args",
 ]
 
 [[package]]
@@ -5282,9 +5285,9 @@ dependencies = [
  "eyre",
  "tracing",
  "tracing-subscriber",
- "windows 0.61.1",
  "ymb_args",
  "ymb_console",
+ "ymb_lifecycle",
  "ymb_logs",
  "ymb_tray",
  "ymb_windy",

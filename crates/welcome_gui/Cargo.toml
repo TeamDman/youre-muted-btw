@@ -9,3 +9,4 @@ version.workspace = true
 [dependencies]
 eyre.workspace = true
 bevy.workspace = true
+ymb_args.workspace = true
