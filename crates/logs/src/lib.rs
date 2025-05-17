@@ -57,7 +57,6 @@ impl<'a> MakeWriter<'a> for DualWriter {
     }
 }
 
-
 pub fn setup_tracing(debug: bool) -> LogBuffer {
     let buffer = Arc::new(Mutex::new(Vec::new()));
 

@@ -1,10 +1,3 @@
-use ymb_console::ctrl_handler;
-use ymb_console::hide_console_window;
-use ymb_console::show_console_window;
-use ymb_lifecycle::OUR_HWND;
-use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
-use ymb_logs::LogBuffer;
-use ymb_windy::WindyResult;
 use std::sync::atomic::Ordering;
 use std::thread;
 use tracing::error;
@@ -15,6 +8,13 @@ use windows::Win32::System::LibraryLoader::*;
 use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::w;
+use ymb_console::ctrl_handler;
+use ymb_console::hide_console_window;
+use ymb_console::show_console_window;
+use ymb_lifecycle::OUR_HWND;
+use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
+use ymb_logs::LogBuffer;
+use ymb_windy::WindyResult;
 
 const WM_TRAYICON: u32 = WM_USER + 1;
 const ID_TRAYICON: u32 = 1;
@@ -94,7 +94,7 @@ impl TrayWindow {
                 ID_SHOW_LOGS => {
                     unsafe {
                         hide_console_window();
-                       show_console_window(self.log_buffer.clone());
+                        show_console_window(self.log_buffer.clone());
                     }
                     true
                 }
@@ -169,8 +169,6 @@ unsafe extern "system" fn window_proc(
         unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
     }
 }
-
-
 
 pub fn main(log_buffer: LogBuffer) -> WindyResult<()> {
     unsafe {

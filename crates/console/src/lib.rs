@@ -24,7 +24,6 @@ pub fn hide_console_window() {
     }
 }
 
-
 pub unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     match ctrl_type {
         CTRL_C_EVENT | CTRL_BREAK_EVENT | CTRL_CLOSE_EVENT | CTRL_LOGOFF_EVENT
@@ -81,7 +80,7 @@ pub fn is_inheriting_console() -> bool {
     let mut buffer = [0u32; 1];
     let rtn = unsafe { GetConsoleProcessList(&mut buffer) };
     println!("GetConsoleProcessList returned: {rtn}");
-    
+
     rtn != 1
 }
 

@@ -1,12 +1,12 @@
 use clap::CommandFactory;
 use clap::FromArgMatches;
+use tracing::debug;
+use tracing::info;
 use ymb_args::Args;
 use ymb_console::hide_console_window;
 use ymb_console::is_inheriting_console;
 use ymb_logs::setup_tracing;
 use ymb_windy::WindyResult;
-use tracing::debug;
-use tracing::info;
 
 fn main() -> WindyResult<()> {
     color_eyre::install()?;
@@ -21,7 +21,6 @@ fn main() -> WindyResult<()> {
         );
         panic_hook(info);
     }));
-
 
     let mut cmd = Args::command();
     cmd = cmd.version(env!("CARGO_PKG_VERSION"));
