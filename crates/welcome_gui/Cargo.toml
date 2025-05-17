@@ -11,3 +11,4 @@ eyre.workspace = true
 bevy.workspace = true
 ymb_args.workspace = true
 ymb_logs.workspace = true
+windows.workspace = true

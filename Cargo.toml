@@ -32,6 +32,9 @@ windows = { version = "0.61.1", features = [
     "Win32_System_Console",
     "Win32_Storage",
     "Win32_Storage_FileSystem",
+    "Win32_System_Threading",
+    "Win32_System_JobObjects",
+    "Win32_Security",
 ] }
 strum = { version = "0.27.1", features = ["derive"] }
 bevy_log = "0.16.0"
