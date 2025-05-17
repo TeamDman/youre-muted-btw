@@ -18,19 +18,17 @@ impl Args {
             rtn.push("--debug".into());
         }
         if let Some(command) = self.command {
-            match command {
-                Command::Tray => rtn.push("tray".into()),
-                Command::Gui => rtn.push("gui".into()),
-            }
+            rtn.push(command.to_string().into())
         }
         rtn
     }
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Subcommand, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Command {
     Tray,
-    Gui,
+    WelcomeGui,
 }
 
 #[derive(Debug, Parser, Clone)]

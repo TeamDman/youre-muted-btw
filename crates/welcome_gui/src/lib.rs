@@ -6,6 +6,7 @@
 
 use std::env::current_exe;
 use std::process::Command;
+use std::thread;
 
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
@@ -14,24 +15,33 @@ use bevy::window::CompositeAlphaMode;
 use ymb_args::Args;
 use ymb_args::GlobalArgs;
 
-pub fn main(global_args: &GlobalArgs) -> eyre::Result<()> {
+pub fn spawn(global_args: GlobalArgs) -> eyre::Result<()> {
     info!("Ahoy from GUI!");
-    let exe = current_exe()?;
-    let output = Command::new(exe)
-        .args(
-            Args {
-                global: global_args.clone(),
-                command: Some(ymb_args::Command::Gui),
-            }
-            .as_args(),
-        )
-        .spawn()?
-        .wait_with_output()?;
-    info!("Got: {output:#?}");
+    thread::spawn(move || {
+        let result: eyre::Result<()> = (|| {
+            let exe = current_exe()?;
+            let output = Command::new(exe)
+                .args(
+                    Args {
+                        global: global_args.clone(),
+                        command: Some(ymb_args::Command::WelcomeGui),
+                    }
+                    .as_args(),
+                )
+                .spawn()?
+                .wait_with_output()?;
+            info!("Got: {output:#?}");
+            Ok(())
+        })();
+        if let Err(e) = result {
+            error!("Error running GUI: {e}");
+            std::process::exit(1);
+        };
+    });
     Ok(())
 }
 
-fn run() {
+pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
     App::new()
         .add_plugins(
             DefaultPlugins
@@ -40,7 +50,7 @@ fn run() {
                         // Setting `transparent` allows the `ClearColor`'s alpha value to take effect
                         // transparent: true,
                         // Disabling window decorations to make it feel more like a widget than a window
-                        decorations: false,
+                        // decorations: false,
                         ..default()
                     }),
                     ..default()
@@ -51,6 +61,7 @@ fn run() {
         .insert_resource(ClearColor(Color::NONE))
         .add_systems(Startup, setup)
         .run();
+    Ok(())
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {

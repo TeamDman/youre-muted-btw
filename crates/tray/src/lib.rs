@@ -1,5 +1,4 @@
 use std::sync::atomic::Ordering;
-use std::thread;
 use tracing::debug;
 use tracing::error;
 use tracing::info;
@@ -75,10 +74,8 @@ impl TrayWindow {
                     true
                 } else if lparam.0 as u32 == WM_LBUTTONUP {
                     info!("Hello from tray icon click!");
-                    let global_args = self.global_args.clone();
-                    thread::spawn(move || {
-                        ymb_welcome_gui::main(&global_args).unwrap();
-                    });
+                    ymb_welcome_gui::spawn(self.global_args.clone()).unwrap();
+                    
                     true
                 } else {
                     false

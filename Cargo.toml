@@ -33,7 +33,8 @@ windows = { version = "0.61.1", features = [
     "Win32_Storage",
     "Win32_Storage_FileSystem",
 ] }
-
+strum = { version = "0.27.1", features = ["derive"] }
+bevy_log = "0.16.0"
 
 [package]
 name = "youre-muted-btw"
@@ -54,4 +55,5 @@ ymb_tray.workspace = true
 ymb_windy.workspace = true
 ymb_logs.workspace = true
 ymb_console.workspace = true
+ymb_welcome_gui.workspace = true
 ymb_lifecycle.workspace = true
