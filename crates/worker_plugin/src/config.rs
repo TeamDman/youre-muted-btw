@@ -4,58 +4,28 @@ use crate::ThreadboundMessageHandler;
 use crate::ThreadboundMessageReceiver;
 use crate::WorkerMessage;
 use crate::WorkerStateTrait;
+use bevy::ecs::error::BevyError;
 use bevy::ecs::resource::Resource;
 use bevy::prelude::ReflectResource;
 use bevy::reflect::Reflect;
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
-pub struct WorkerConfig<
-    ThreadboundMessage,
-    GameboundMessage,
-    WorkerState,
-    ErrorFromMessageHandling,
-    ErrorFromErrorHandling,
-    ErrorFromMessageReceiving,
-> {
+pub struct WorkerConfig<ThreadboundMessage, GameboundMessage, WorkerState> {
     pub name: String,
     pub sleep_duration: std::time::Duration,
     pub is_ui_automation_thread: bool,
-    pub threadbound_message_receiver:
-        ThreadboundMessageReceiver<ThreadboundMessage, WorkerState, ErrorFromMessageReceiving>,
-    pub handle_threadbound_message: ThreadboundMessageHandler<
-        ThreadboundMessage,
-        GameboundMessage,
-        WorkerState,
-        ErrorFromMessageHandling,
-    >,
-    pub handle_threadbound_message_error_handler: ThreadboundMessageErrorHandler<
-        ThreadboundMessage,
-        GameboundMessage,
-        WorkerState,
-        ErrorFromMessageHandling,
-        ErrorFromErrorHandling,
-    >,
+    pub threadbound_message_receiver: ThreadboundMessageReceiver<ThreadboundMessage, WorkerState>,
+    pub handle_threadbound_message:
+        ThreadboundMessageHandler<ThreadboundMessage, GameboundMessage, WorkerState>,
+    pub handle_threadbound_message_error_handler:
+        ThreadboundMessageErrorHandler<ThreadboundMessage, GameboundMessage, WorkerState>,
     pub gamebound_channel_capacity: usize,
     pub threadbound_channel_capacity: usize,
-    pub type_holder: PhantomHolder<
-        ThreadboundMessage,
-        GameboundMessage,
-        WorkerState,
-        ErrorFromMessageHandling,
-        ErrorFromErrorHandling,
-        ErrorFromMessageReceiving,
-    >,
+    pub type_holder: PhantomHolder<ThreadboundMessage, GameboundMessage, WorkerState>,
 }
 impl<ThreadboundMessage, GameboundMessage, WorkerState> Default
-    for WorkerConfig<
-        ThreadboundMessage,
-        GameboundMessage,
-        WorkerState,
-        eyre::Error,
-        eyre::Error,
-        eyre::Error,
-    >
+    for WorkerConfig<ThreadboundMessage, GameboundMessage, WorkerState>
 where
     ThreadboundMessage: WorkerMessage,
     GameboundMessage: WorkerMessage,
@@ -69,19 +39,18 @@ where
             handle_threadbound_message: |_, _, _| Ok(()),
             handle_threadbound_message_error_handler: |_, _, _, _| Ok(()),
             threadbound_message_receiver: |thread_rx, _state| {
-                thread_rx
-                    .recv()
-                    .map_err(|e| eyre::Error::from(e).wrap_err("receiving threadbound message"))
+                thread_rx.recv().map_err(BevyError::from)
             },
             gamebound_channel_capacity: 10,
             threadbound_channel_capacity: 10,
             type_holder:
-                PhantomHolder::<ThreadboundMessage, GameboundMessage, WorkerState, _, _, _>::default(
-                ),
+                PhantomHolder::<ThreadboundMessage, GameboundMessage, WorkerState>::default(),
         }
     }
 }
-impl<T, G, S, E, EE, EEE> Clone for WorkerConfig<T, G, S, E, EE, EEE> {
+impl<ThreadboundMessage, GameboundMessage, WorkerState> Clone
+    for WorkerConfig<ThreadboundMessage, GameboundMessage, WorkerState>
+{
     fn clone(&self) -> Self {
         WorkerConfig {
             name: self.name.clone(),

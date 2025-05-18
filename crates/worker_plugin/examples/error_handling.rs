@@ -1,15 +1,36 @@
+use bevy::log::DEFAULT_FILTER;
+use bevy::log::Level;
 use bevy::log::LogPlugin;
+use bevy::log::tracing_subscriber;
+use bevy::log::tracing_subscriber::EnvFilter;
 use bevy::prelude::*;
 use crossbeam_channel::Sender;
 use ymb_worker_plugin::WorkerConfig;
 use ymb_worker_plugin::WorkerPlugin;
+
+fn main() {
+    // manually configure tracing so that bevy doesn't take the DEBUG override when running from vscode
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::builder().parse_lossy(format!(
+            "{},{}",
+            Level::INFO,
+            DEFAULT_FILTER
+        )))
+        .init();
+    App::new()
+        .add_plugins(DefaultPlugins.build().disable::<LogPlugin>())
+        .add_plugins(MyCounterPlugin)
+        .run();
+}
+
+// #################################
 
 pub struct MyCounterPlugin;
 
 impl Plugin for MyCounterPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(WorkerPlugin {
-            config: WorkerConfig::<ThreadboundMessage, GameboundMessage, WorkerState, _, _, _> {
+            config: WorkerConfig::<ThreadboundMessage, GameboundMessage, WorkerState> {
                 name: "MyWorker".to_string(),
                 handle_threadbound_message,
                 handle_threadbound_message_error_handler,
@@ -40,8 +61,8 @@ fn handle_threadbound_message_error_handler(
     _msg: &ThreadboundMessage,
     reply_tx: &Sender<GameboundMessage>,
     _state: &mut WorkerState,
-    error: &eyre::Error,
-) -> eyre::Result<()> {
+    error: &BevyError,
+) -> Result<()> {
     reply_tx.send(GameboundMessage::Error {
         message: format!("{error:#?}"),
     })?;
@@ -52,7 +73,7 @@ fn handle_threadbound_message(
     msg: &ThreadboundMessage,
     reply_tx: &Sender<GameboundMessage>,
     state: &mut WorkerState,
-) -> eyre::Result<()> {
+) -> Result<()> {
     match msg {
         ThreadboundMessage::Reset => {
             state.count = 0;
@@ -60,6 +81,9 @@ fn handle_threadbound_message(
         ThreadboundMessage::Increment => {
             state.count += 1;
         }
+    }
+    if state.count == 13 {
+        return Err(eyre::eyre!("Count reached 13!").into());
     }
     reply_tx.send(GameboundMessage::Latest(state.count))?;
     Ok(())
@@ -79,7 +103,7 @@ impl Default for CounterState {
     fn default() -> Self {
         Self {
             count: 0,
-            reset_at: 100,
+            reset_at: 20,
             tick_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
             print_timer: Timer::from_seconds(0.05, TimerMode::Repeating),
         }
@@ -96,6 +120,7 @@ fn handle_gamebound_messages(
     mut snapshot: EventReader<GameboundMessage>,
     mut counter_state: ResMut<CounterState>,
     mut threadbound_messages: EventWriter<ThreadboundMessage>,
+    mut error_count: Local<u32>,
 ) -> Result {
     for msg in snapshot.read() {
         match msg {
@@ -105,7 +130,14 @@ fn handle_gamebound_messages(
                     threadbound_messages.write(ThreadboundMessage::Reset);
                 }
             }
-            GameboundMessage::Error { message } => return Err(BevyError::from(message.clone())),
+            GameboundMessage::Error { message } => {
+                *error_count += 1;
+                if *error_count > 3 {
+                    return Err(BevyError::from(message.clone()));
+                } else {
+                    error!("Error from worker: {message:#?}");
+                }
+            }
         }
     }
     Ok(())
@@ -129,16 +161,4 @@ fn print_count(mut counter_state: ResMut<CounterState>, time: Res<Time>) {
         return;
     }
     info!("Current count: {}", counter_state.count);
-}
-
-// #################################
-
-fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins.set(LogPlugin {
-            level: bevy::log::Level::INFO,
-            ..default()
-        }))
-        .add_plugins(MyCounterPlugin)
-        .run();
 }

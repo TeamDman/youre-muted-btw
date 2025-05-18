@@ -1,6 +1,5 @@
 use crate::Bridge;
 use crate::WorkerConfig;
-use crate::WorkerError;
 use crate::WorkerMessage;
 use crate::WorkerStateTrait;
 use bevy::prelude::*;
@@ -15,18 +14,12 @@ pub fn create_worker_thread<
     ThreadboundMessage,
     GameboundMessage,
     WorkerState,
-    ErrorFromMessageHandling,
-    ErrorFromErrorHandling,
-    ErrorFromMessageReceiving,
 >(
     config: Res<
         WorkerConfig<
             ThreadboundMessage,
             GameboundMessage,
             WorkerState,
-            ErrorFromMessageHandling,
-            ErrorFromErrorHandling,
-            ErrorFromMessageReceiving,
         >,
     >,
     mut commands: Commands,
@@ -34,9 +27,6 @@ pub fn create_worker_thread<
     ThreadboundMessage: WorkerMessage,
     GameboundMessage: WorkerMessage,
     WorkerState: WorkerStateTrait,
-    ErrorFromMessageHandling: WorkerError,
-    ErrorFromErrorHandling: WorkerError,
-    ErrorFromMessageReceiving: WorkerError,
 {
     let (game_tx, game_rx) = bounded::<GameboundMessage>(config.gamebound_channel_capacity);
     let (thread_tx, thread_rx) = bounded::<ThreadboundMessage>(config.threadbound_channel_capacity);

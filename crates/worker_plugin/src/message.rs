@@ -5,16 +5,20 @@ use crossbeam_channel::Sender;
 pub trait WorkerMessage: std::fmt::Debug + Event + Send + Sync + Clone + 'static {}
 impl<T> WorkerMessage for T where T: std::fmt::Debug + Event + Send + Sync + Clone + 'static {}
 
-pub type ThreadboundMessageHandler<T, G, S, E> =
-    fn(msg: &T, reply_tx: &Sender<G>, state: &mut S) -> Result<(), E>;
-
-pub type ThreadboundMessageErrorHandler<T, G, S, ErrorFromMsgHandling, ErrorFromErrorHandling> =
+pub type ThreadboundMessageHandler<ThreadboundMessage, GameboundMessage, WorkerState> =
     fn(
-        msg: &T,
-        reply_tx: &Sender<G>,
-        state: &mut S,
-        error: &ErrorFromMsgHandling,
-    ) -> Result<(), ErrorFromErrorHandling>;
+        msg: &ThreadboundMessage,
+        reply_tx: &Sender<GameboundMessage>,
+        state: &mut WorkerState,
+    ) -> bevy::prelude::Result<()>;
 
-pub type ThreadboundMessageReceiver<T, S, E> =
-    fn(thread_rx: &Receiver<T>, state: &mut S) -> Result<T, E>;
+pub type ThreadboundMessageErrorHandler<ThreadboundMessage, GameboundMessage, WorkerState> =
+    fn(
+        msg: &ThreadboundMessage,
+        reply_tx: &Sender<GameboundMessage>,
+        state: &mut WorkerState,
+        error: &bevy::prelude::BevyError,
+    ) -> bevy::prelude::Result<()>;
+
+pub type ThreadboundMessageReceiver<T, S> =
+    fn(thread_rx: &Receiver<T>, state: &mut S) -> bevy::prelude::Result<T>;

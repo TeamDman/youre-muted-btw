@@ -1,5 +1,4 @@
 use crate::WorkerConfig;
-use crate::WorkerError;
 use crate::WorkerMessage;
 use crate::WorkerStateTrait;
 use bevy::ecs::event::EventReader;
@@ -12,17 +11,14 @@ use bevy::log::trace;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::Sender;
 
-pub fn bridge_requests<T, G, S, E, EE, EEE>(
-    config: Res<WorkerConfig<T, G, S, E, EE, EEE>>,
-    bridge: ResMut<Bridge<T, G>>,
-    mut events: EventReader<T>,
+pub fn bridge_requests<ThreadboundMessage, GameboundMessage, WorkerState>(
+    config: Res<WorkerConfig<ThreadboundMessage, GameboundMessage, WorkerState>>,
+    bridge: ResMut<Bridge<ThreadboundMessage, GameboundMessage>>,
+    mut events: EventReader<ThreadboundMessage>,
 ) where
-    T: WorkerMessage,
-    G: WorkerMessage,
-    S: WorkerStateTrait,
-    E: WorkerError,
-    EE: WorkerError,
-    EEE: WorkerError,
+    ThreadboundMessage: WorkerMessage,
+    GameboundMessage: WorkerMessage,
+    WorkerState: WorkerStateTrait,
 {
     for event in events.read() {
         trace!("[{}] Bevy => Thread: {:?}", config.name, event);
@@ -45,17 +41,14 @@ pub fn bridge_requests<T, G, S, E, EE, EEE>(
     }
 }
 
-pub fn bridge_responses<T, G, S, E, EE, EEE>(
-    config: Res<WorkerConfig<T, G, S, E, EE, EEE>>,
+pub fn bridge_responses<T, G, S>(
+    config: Res<WorkerConfig<T, G, S>>,
     bridge: ResMut<Bridge<T, G>>,
     mut events: EventWriter<G>,
 ) where
     T: WorkerMessage,
     G: WorkerMessage,
     S: WorkerStateTrait,
-    E: WorkerError,
-    EE: WorkerError,
-    EEE: WorkerError,
 {
     for msg in bridge.receiver.try_iter() {
         trace!("[{}] Thread => Bevy: {:?}", config.name, msg);
