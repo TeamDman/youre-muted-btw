@@ -100,11 +100,11 @@ pub enum GameboundMessage {
 }
 
 fn handle_gamebound_messages(
-    mut snapshot: EventReader<GameboundMessage>,
+    mut messages: EventReader<GameboundMessage>,
     mut counter_state: ResMut<CounterState>,
     mut threadbound_messages: EventWriter<ThreadboundMessage>,
 ) -> Result {
-    for msg in snapshot.read() {
+    for msg in messages.read() {
         match msg {
             GameboundMessage::Latest(x) => {
                 counter_state.count = *x;

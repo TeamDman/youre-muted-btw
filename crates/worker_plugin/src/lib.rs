@@ -13,3 +13,5 @@ pub use message::*;
 pub use phantom_holder::*;
 pub use plugin::*;
 pub use state::*;
+
+pub use crossbeam_channel::*;

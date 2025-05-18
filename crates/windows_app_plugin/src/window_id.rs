@@ -1,8 +1,8 @@
+use bevy::reflect::Reflect;
 use std::ops::Deref;
-
 use windows::Win32::Foundation::HWND;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 #[repr(transparent)]
 pub struct WindowId(usize);
 impl From<HWND> for WindowId {

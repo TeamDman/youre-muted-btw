@@ -6369,6 +6369,7 @@ dependencies = [
  "bevy",
  "windows 0.61.1",
  "ymb_windy",
+ "ymb_worker_plugin",
 ]
 
 [[package]]
