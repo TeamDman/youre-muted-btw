@@ -26,6 +26,9 @@ impl Plugin for WindowsAppPlugin {
         app.register_type::<WindowsAppKind>();
         app.add_systems(Update, handle_gamebound_messages);
         app.add_systems(Update, tick);
+        app.add_systems(Startup, |mut threadbound_messages: EventWriter<ThreadboundMessage>| {
+            threadbound_messages.write(ThreadboundMessage::Gather);
+        });
     }
 }
 
@@ -59,6 +62,7 @@ fn handle_threadbound_message(
 ) -> Result<()> {
     match msg {
         ThreadboundMessage::Gather => {
+            info!("Gathering Windows apps");
             let apps = get_apps()?;
             reply_tx.send(GameboundMessage::Latest(apps))?;
         }

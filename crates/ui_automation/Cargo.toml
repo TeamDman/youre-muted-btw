@@ -1,0 +1,13 @@
+[package]
+name = "ymb_ui_automation"
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+bevy.workspace=true
+uiautomation.workspace=true
+serde.workspace=true
+itertools.workspace=true

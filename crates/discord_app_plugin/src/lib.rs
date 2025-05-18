@@ -1,15 +1,25 @@
+mod worker;
 use bevy::prelude::*;
+use worker::DiscordAppWorkerPlugin;
+use worker::ThreadboundMessage;
 
 pub struct DiscordAppPlugin;
 
 impl Plugin for DiscordAppPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, update_host_cursor_position);
+        app.add_plugins(DiscordAppWorkerPlugin);
+
         app.init_resource::<DiscordAppPluginPluginConfig>();
+        app.register_type::<DiscordAppPluginPluginConfig>();
+
+        app.add_event::<MuteButtonIdentified>();
+        app.register_type::<MuteButtonIdentified>();
+        app.add_systems(Update, handle_click);
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct DiscordAppPluginPluginConfig {
     pub refresh_interval: Timer,
 }
@@ -21,10 +31,18 @@ impl Default for DiscordAppPluginPluginConfig {
     }
 }
 
-fn update_host_cursor_position(mut config: ResMut<DiscordAppPluginPluginConfig>, time: Res<Time>) {
-    config.refresh_interval.tick(time.delta());
-    if !config.refresh_interval.just_finished() {
-        return;
+#[derive(Event, Reflect)]
+pub struct MuteButtonIdentified {
+    pub discord_app: Entity,
+    pub pos: IVec2,
+}
+
+fn handle_click(
+    mut click_events: EventReader<MuteButtonIdentified>,
+    mut worker: EventWriter<ThreadboundMessage>,
+) {
+    for event in click_events.read() {
+        info!("User said to investigate position: {:?}", event.pos);
+        worker.write(ThreadboundMessage::Lookup { pos: event.pos });
     }
-    info!("Checking discord app position");
 }

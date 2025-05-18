@@ -26,6 +26,10 @@ ymb_click_plugin = { path = "crates/click_plugin" }
 ymb_inspector_plugin = { path = "crates/inspector_plugin" }
 ymb_assets = { path = "crates/assets" }
 ymb_worker_plugin = { path = "crates/worker_plugin" }
+ymb_ui_automation = { path = "crates/ui_automation" }
+ymb_ui_automation_plugin = { path = "crates/ui_automation_plugin" }
+uiautomation = "0.18.4"
+serde = { version = "1.0.219", features = ["derive"] }
 
 bevy = { version = "0.16.0" }
 clap = { version = "4.5.37", features = ["derive"] }
@@ -52,6 +56,7 @@ holda = "0.1.0"
 bevy-inspector-egui = "0.31.0"
 crossbeam-channel = "0.5.15"
 # tokio = { version = "1.45.0", features = ["full"] }
+itertools = "0.14.0"
 
 [package]
 name = "youre-muted-btw"
