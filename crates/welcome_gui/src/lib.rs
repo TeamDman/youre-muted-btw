@@ -1,4 +1,3 @@
-use bevy::input::common_conditions::input_toggle_active;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::text::TextBounds;
@@ -6,6 +5,7 @@ use bevy::window::CursorOptions;
 use bevy::window::WindowLevel;
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use ymb_discord_app_plugin::DiscordAppPlugin;
 use std::env::current_exe;
 use std::process::Child;
 use std::process::Command;
@@ -20,7 +20,7 @@ use windows::Win32::System::JobObjects::SetInformationJobObject;
 use ymb_app_under_cursor_plugin::AppUnderCursorPlugin;
 use ymb_args::Args;
 use ymb_args::GlobalArgs;
-use ymb_discord_app_plugin::DiscordAppPlugin;
+use ymb_click_plugin::ClickPlugin;
 use ymb_exit_on_esc_plugin::ExitOnEscPlugin;
 use ymb_host_cursor_position_plugin::HostCursorPositionPlugin;
 use ymb_inspector_plugin::Inspector;
@@ -132,9 +132,9 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
         )
         .add_plugins(InspectorPlugin)
         .add_plugins(WindowsAppPlugin)
-        // .add_plugins(AppUnderCursorPlugin)
-        // .add_plugins(ClickPlugin)
-        // .add_plugins(DiscordAppPlugin)
+        .add_plugins(AppUnderCursorPlugin)
+        .add_plugins(ClickPlugin)
+        .add_plugins(DiscordAppPlugin)
         .run();
     Ok(())
 }

@@ -16,7 +16,11 @@ fn handle_click(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     apps: Query<(&WindowsApp, Option<&UnderCursor>)>,
+    mouse_state: Res<ButtonInput<MouseButton>>,
 ) {
+    if !mouse_state.just_pressed(MouseButton::Left) {
+        return;
+    }
     let is_discord_under_cursor = {
         let mut rtn = false;
         for (app, under_cursor) in apps.iter() {
@@ -27,11 +31,13 @@ fn handle_click(
         }
         rtn
     };
-    commands.spawn(AudioPlayer::new(asset_server.load(
-        if is_discord_under_cursor {
+    commands.spawn((
+        AudioPlayer::new(asset_server.load(if is_discord_under_cursor {
             Sound::SimpleTone
         } else {
             Sound::ShortSoft
-        },
-    )));
+        })),
+        PlaybackSettings::DESPAWN,
+        Name::new("Click Sound"),
+    ));
 }
