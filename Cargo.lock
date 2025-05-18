@@ -6381,6 +6381,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ymb_worker_plugin"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "crossbeam-channel",
+ "eyre",
+ "windows 0.61.1",
+]
+
+[[package]]
 name = "youre-muted-btw"
 version = "0.1.0"
 dependencies = [

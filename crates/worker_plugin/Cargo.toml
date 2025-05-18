@@ -1,0 +1,16 @@
+[package]
+name = "ymb_worker_plugin"
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+bevy.workspace = true
+crossbeam-channel.workspace = true
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_Com",
+] }
+eyre.workspace=true

@@ -25,6 +25,7 @@ ymb_discord_app_plugin = { path = "crates/discord_app_plugin" }
 ymb_click_plugin = { path = "crates/click_plugin" }
 ymb_inspector_plugin = { path = "crates/inspector_plugin" }
 ymb_assets = { path = "crates/assets" }
+ymb_worker_plugin = { path = "crates/worker_plugin" }
 
 bevy = { version = "0.16.0" }
 clap = { version = "4.5.37", features = ["derive"] }
@@ -49,6 +50,8 @@ strum = { version = "0.27.1", features = ["derive"] }
 bevy_log = "0.16.0"
 holda = "0.1.0"
 bevy-inspector-egui = "0.31.0"
+crossbeam-channel = "0.5.15"
+# tokio = { version = "1.45.0", features = ["full"] }
 
 [package]
 name = "youre-muted-btw"

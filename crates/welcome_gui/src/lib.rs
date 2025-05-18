@@ -131,7 +131,7 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
             WindowPositionPlugin::new().run_if(|inspector: Res<Inspector>| !inspector.enabled),
         )
         .add_plugins(InspectorPlugin)
-        // .add_plugins(WindowsAppPlugin)
+        .add_plugins(WindowsAppPlugin)
         // .add_plugins(AppUnderCursorPlugin)
         // .add_plugins(ClickPlugin)
         // .add_plugins(DiscordAppPlugin)
