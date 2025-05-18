@@ -10,5 +10,5 @@ version.workspace = true
 bevy.workspace=true
 windows.workspace=true
 ymb_windy.workspace=true
-ymb_windows_app.workspace=true
+ymb_windows_app_plugin.workspace=true
 ymb_host_cursor_position_plugin.workspace=true

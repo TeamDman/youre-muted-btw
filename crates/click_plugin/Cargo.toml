@@ -1,5 +1,5 @@
 [package]
-name = "ymb_discord_app_plugin"
+name = "ymb_click_plugin"
 authors.workspace = true
 repository.workspace = true
 edition.workspace = true
@@ -7,7 +7,7 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
-ymb_windy.workspace=true
 bevy.workspace=true
-windows.workspace=true
-holda.workspace=true
+ymb_windows_app_plugin.workspace=true
+ymb_assets.workspace=true
+ymb_app_under_cursor_plugin.workspace=true

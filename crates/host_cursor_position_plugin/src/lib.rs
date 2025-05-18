@@ -11,24 +11,28 @@ impl Plugin for HostCursorPositionPlugin {
         app.add_systems(Update, update_host_cursor_position);
         app.init_resource::<HostCursorPosition>();
         app.init_resource::<HostCursorPositionPluginConfig>();
+        app.register_type::<HostCursorPosition>();
+        app.register_type::<HostCursorPositionPluginConfig>();
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct HostCursorPositionPluginConfig {
-    pub timer: Timer,
+    pub refresh_interval: Timer,
 }
 impl Default for HostCursorPositionPluginConfig {
     fn default() -> Self {
         Self {
-            timer: Timer::from_seconds(0.01, TimerMode::Repeating),
+            refresh_interval: Timer::from_seconds(0.01, TimerMode::Repeating),
         }
     }
 }
 
-#[derive(Resource, Holda, Default)]
+#[derive(Resource, Holda, Default, Reflect)]
 #[holda(NoSerde)]
 #[holda(NoOrd)]
+#[reflect(Resource)]
 pub struct HostCursorPosition {
     pub position: IVec2,
 }
@@ -38,8 +42,8 @@ fn update_host_cursor_position(
     mut config: ResMut<HostCursorPositionPluginConfig>,
     time: Res<Time>,
 ) {
-    config.timer.tick(time.delta());
-    if !config.timer.just_finished() {
+    config.refresh_interval.tick(time.delta());
+    if !config.refresh_interval.just_finished() {
         return;
     }
     host_cursor_position.position = get_host_cursor_position().unwrap();

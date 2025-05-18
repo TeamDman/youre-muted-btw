@@ -1,5 +1,5 @@
 [package]
-name = "ymb_discord_app_plugin"
+name = "ymb_windows_app_plugin"
 authors.workspace = true
 repository.workspace = true
 edition.workspace = true
@@ -7,7 +7,6 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
-ymb_windy.workspace=true
-bevy.workspace=true
-windows.workspace=true
-holda.workspace=true
+windows.workspace = true
+bevy.workspace = true
+ymb_windy.workspace = true

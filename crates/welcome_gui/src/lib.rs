@@ -1,9 +1,11 @@
+use bevy::input::common_conditions::input_toggle_active;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::text::TextBounds;
 use bevy::window::CursorOptions;
 use bevy::window::WindowLevel;
-use ymb_host_cursor_position_plugin::HostCursorPositionPlugin;
+use bevy_inspector_egui::bevy_egui::EguiPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use std::env::current_exe;
 use std::process::Child;
 use std::process::Command;
@@ -18,8 +20,13 @@ use windows::Win32::System::JobObjects::SetInformationJobObject;
 use ymb_app_under_cursor_plugin::AppUnderCursorPlugin;
 use ymb_args::Args;
 use ymb_args::GlobalArgs;
+use ymb_discord_app_plugin::DiscordAppPlugin;
 use ymb_exit_on_esc_plugin::ExitOnEscPlugin;
-use ymb_position_window_plugin::PositionWindowPlugin;
+use ymb_host_cursor_position_plugin::HostCursorPositionPlugin;
+use ymb_inspector_plugin::Inspector;
+use ymb_inspector_plugin::InspectorPlugin;
+use ymb_position_window_plugin::WindowPositionPlugin;
+use ymb_windows_app_plugin::WindowsAppPlugin;
 
 pub fn spawn(global_args: GlobalArgs) -> eyre::Result<()> {
     info!("Ahoy from GUI!");
@@ -84,6 +91,7 @@ fn attach_to_job(job_handle: HANDLE, child: &mut Child) -> eyre::Result<()> {
 
 pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
     App::new()
+        // bevy
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
@@ -95,7 +103,9 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
                         window_level: WindowLevel::AlwaysOnTop,
                         cursor_options: CursorOptions {
                             visible: false,
-                            hit_test: false,
+                            // visible: true,
+                            // hit_test: false,
+                            hit_test: true,
                             ..default()
                         },
                         // resolution: WindowResolution::new(1920.,1080.),
@@ -105,12 +115,26 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
                 })
                 .disable::<LogPlugin>(),
         )
-        .add_plugins(PositionWindowPlugin)
-        .add_plugins(ExitOnEscPlugin)
-        .add_plugins(AppUnderCursorPlugin)
-        .add_plugins(HostCursorPositionPlugin)
         .insert_resource(ClearColor(Color::NONE))
         .add_systems(Startup, setup)
+        // bevy-inspector-egui
+        .add_plugins(EguiPlugin {
+            enable_multipass_for_primary_context: true,
+        })
+        .add_plugins(
+            WorldInspectorPlugin::new().run_if(|inspector: Res<Inspector>| inspector.enabled),
+        )
+        // ours
+        .add_plugins(ExitOnEscPlugin)
+        .add_plugins(HostCursorPositionPlugin)
+        .add_plugins(
+            WindowPositionPlugin::new().run_if(|inspector: Res<Inspector>| !inspector.enabled),
+        )
+        .add_plugins(InspectorPlugin)
+        // .add_plugins(WindowsAppPlugin)
+        // .add_plugins(AppUnderCursorPlugin)
+        // .add_plugins(ClickPlugin)
+        // .add_plugins(DiscordAppPlugin)
         .run();
     Ok(())
 }
@@ -118,10 +142,10 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d);
     commands.spawn(Sprite::from_image(
-        asset_server.load("textures/targetting_circle.png"),
+        asset_server.load(ymb_assets::Texture::TargettingCircle),
     ));
 
-    let font = asset_server.load("fonts/FixederSys2x.ttf");
+    let font = asset_server.load(ymb_assets::Font::FixederSys2x);
     let slightly_smaller_text_font = TextFont {
         font,
         font_size: 35.0,

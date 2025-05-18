@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use ymb_host_cursor_position_plugin::HostCursorPosition;
-use ymb_windows_app::WindowsApp;
+use ymb_windows_app_plugin::WindowsApp;
 
 pub struct AppUnderCursorPlugin;
 

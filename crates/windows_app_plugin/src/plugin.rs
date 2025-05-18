@@ -2,9 +2,9 @@ use crate::WindowsApp;
 use crate::get_apps;
 use bevy::prelude::*;
 
-pub struct WindowsAppListPlugin;
+pub struct WindowsAppPlugin;
 
-impl Plugin for WindowsAppListPlugin {
+impl Plugin for WindowsAppPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, update_apps);
         app.init_resource::<WindowsAppListPluginConfig>();
@@ -13,12 +13,12 @@ impl Plugin for WindowsAppListPlugin {
 
 #[derive(Resource)]
 pub struct WindowsAppListPluginConfig {
-    pub timer: Timer,
+    pub refresh_interval: Timer,
 }
 impl Default for WindowsAppListPluginConfig {
     fn default() -> Self {
         Self {
-            timer: Timer::from_seconds(5.0, TimerMode::Repeating),
+            refresh_interval: Timer::from_seconds(5.0, TimerMode::Repeating),
         }
     }
 }
@@ -29,8 +29,8 @@ fn update_apps(
     mut config: ResMut<WindowsAppListPluginConfig>,
     time: Res<Time>,
 ) -> Result {
-    config.timer.tick(time.delta());
-    if !config.timer.just_finished() {
+    config.refresh_interval.tick(time.delta());
+    if !config.refresh_interval.just_finished() {
         return Ok(());
     }
     let fresh_apps = get_apps()?;

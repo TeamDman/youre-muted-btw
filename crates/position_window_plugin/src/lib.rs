@@ -1,11 +1,33 @@
+use std::sync::Mutex;
+
+use bevy::ecs::schedule::BoxedCondition;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use ymb_host_cursor_position_plugin::HostCursorPosition;
 
-pub struct PositionWindowPlugin;
-impl Plugin for PositionWindowPlugin {
+#[derive(Default)]
+pub struct WindowPositionPlugin {
+    condition: Mutex<Option<BoxedCondition>>,
+}
+impl WindowPositionPlugin {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn run_if<M>(mut self, condition: impl Condition<M>) -> Self {
+        let condition_system = IntoSystem::into_system(condition);
+        self.condition = Mutex::new(Some(Box::new(condition_system) as BoxedCondition));
+        self
+    }
+}
+
+impl Plugin for WindowPositionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, position_window);
+        let condition = self.condition.lock().unwrap().take();
+        let mut system = position_window.into_configs();
+        if let Some(condition) = condition {
+            system.run_if_dyn(condition);
+        }
+        app.add_systems(Update, system);
     }
 }
 fn position_window(
