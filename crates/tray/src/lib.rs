@@ -75,7 +75,7 @@ impl TrayWindow {
                 } else if lparam.0 as u32 == WM_LBUTTONUP {
                     info!("Hello from tray icon click!");
                     ymb_welcome_gui::spawn(self.global_args.clone()).unwrap();
-                    
+
                     true
                 } else {
                     false
@@ -252,7 +252,7 @@ pub fn main(global_args: GlobalArgs, log_buffer: LogBuffer) -> WindyResult<()> {
             hwnd,
             nid,
             log_buffer,
-            global_args
+            global_args,
         });
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
 

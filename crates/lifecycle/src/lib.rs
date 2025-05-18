@@ -1,6 +1,6 @@
+use std::sync::OnceLock;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
-use std::sync::OnceLock;
 
 use ymb_args::GlobalArgs;
 

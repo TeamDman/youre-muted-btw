@@ -1,6 +1,6 @@
-use std::ffi::OsString;
 use clap::Parser;
 use clap::Subcommand;
+use std::ffi::OsString;
 
 #[derive(Debug, Parser)]
 #[command(name = "youre-muted-btw", bin_name = "youre-muted-btw")]

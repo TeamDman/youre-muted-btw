@@ -1,3 +1,5 @@
+use std::error::Error;
+
 pub type WindyResult<T, E = WindyReport> = core::result::Result<T, E>;
 
 pub struct WindyReport {
@@ -34,6 +36,11 @@ impl From<clap::Error> for WindyReport {
         Self {
             inner: eyre::Report::new(error),
         }
+    }
+}
+impl Error for WindyReport {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.inner.source()
     }
 }
 

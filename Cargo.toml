@@ -16,6 +16,12 @@ ymb_lifecycle = { path = "crates/lifecycle" }
 ymb_console = { path = "crates/console" }
 ymb_logs = { path = "crates/logs" }
 ymb_welcome_gui = { path = "crates/welcome_gui" }
+ymb_position_window_plugin = { path = "crates/position_window_plugin" }
+ymb_exit_on_esc_plugin = { path = "crates/exit_on_esc_plugin" }
+ymb_app_under_cursor_plugin = { path = "crates/app_under_cursor_plugin" }
+ymb_windows_app = { path = "crates/windows_app" }
+ymb_host_cursor_position_plugin = { path = "crates/host_cursor_position_plugin" }
+ymb_discord_app_plugin = { path = "crates/discord_app_plugin" }
 
 bevy = { version = "0.16.0" }
 clap = { version = "4.5.37", features = ["derive"] }
@@ -38,6 +44,7 @@ windows = { version = "0.61.1", features = [
 ] }
 strum = { version = "0.27.1", features = ["derive"] }
 bevy_log = "0.16.0"
+holda = "0.1.0"
 
 [package]
 name = "youre-muted-btw"

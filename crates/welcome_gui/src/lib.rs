@@ -1,18 +1,25 @@
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
-use windows::Win32::System::JobObjects::AssignProcessToJobObject;
-use windows::Win32::System::JobObjects::CreateJobObjectW;
-use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
-use windows::Win32::System::JobObjects::SetInformationJobObject;
-use windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
-use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+use bevy::text::TextBounds;
+use bevy::window::CursorOptions;
+use bevy::window::WindowLevel;
+use ymb_host_cursor_position_plugin::HostCursorPositionPlugin;
 use std::env::current_exe;
 use std::process::Child;
 use std::process::Command;
 use std::thread;
 use windows::Win32::Foundation::HANDLE;
+use windows::Win32::System::JobObjects::AssignProcessToJobObject;
+use windows::Win32::System::JobObjects::CreateJobObjectW;
+use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+use windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
+use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
+use windows::Win32::System::JobObjects::SetInformationJobObject;
+use ymb_app_under_cursor_plugin::AppUnderCursorPlugin;
 use ymb_args::Args;
 use ymb_args::GlobalArgs;
+use ymb_exit_on_esc_plugin::ExitOnEscPlugin;
+use ymb_position_window_plugin::PositionWindowPlugin;
 
 pub fn spawn(global_args: GlobalArgs) -> eyre::Result<()> {
     info!("Ahoy from GUI!");
@@ -82,15 +89,26 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         // Setting `transparent` allows the `ClearColor`'s alpha value to take effect
-                        // transparent: true,
+                        transparent: true,
                         // Disabling window decorations to make it feel more like a widget than a window
-                        // decorations: false,
+                        decorations: false,
+                        window_level: WindowLevel::AlwaysOnTop,
+                        cursor_options: CursorOptions {
+                            visible: false,
+                            hit_test: false,
+                            ..default()
+                        },
+                        // resolution: WindowResolution::new(1920.,1080.),
                         ..default()
                     }),
                     ..default()
                 })
                 .disable::<LogPlugin>(),
         )
+        .add_plugins(PositionWindowPlugin)
+        .add_plugins(ExitOnEscPlugin)
+        .add_plugins(AppUnderCursorPlugin)
+        .add_plugins(HostCursorPositionPlugin)
         .insert_resource(ClearColor(Color::NONE))
         .add_systems(Startup, setup)
         .run();
@@ -99,5 +117,32 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d);
-    commands.spawn(Sprite::from_image(asset_server.load("branding/icon.png")));
+    commands.spawn(Sprite::from_image(
+        asset_server.load("textures/targetting_circle.png"),
+    ));
+
+    let font = asset_server.load("fonts/FixederSys2x.ttf");
+    let slightly_smaller_text_font = TextFont {
+        font,
+        font_size: 35.0,
+        ..default()
+    };
+    let box_size = Vec2::new(300.0, 200.0);
+    let box_position = Vec2::new(-300.0, 250.0);
+    commands
+        .spawn((
+            Sprite::from_color(Color::srgb(0.25, 0.25, 0.55), box_size),
+            Transform::from_translation(box_position.extend(0.0)),
+        ))
+        .with_children(|builder| {
+            builder.spawn((
+                Text2d::new("Where is the Discord mute button? Esc to cancel."),
+                slightly_smaller_text_font.clone(),
+                TextLayout::new(JustifyText::Left, LineBreak::WordBoundary),
+                // Wrap text in the rectangle
+                TextBounds::from(box_size),
+                // Ensure the text is drawn on top of the box
+                Transform::from_translation(Vec3::Z),
+            ));
+        });
 }

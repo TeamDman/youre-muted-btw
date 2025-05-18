@@ -1,0 +1,14 @@
+[package]
+name = "ymb_position_window_plugin"
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+bevy.workspace=true
+ymb_host_cursor_position_plugin.workspace=true
+# windows.workspace=true
+# eyre.workspace=true
+# ymb_windy.workspace=true

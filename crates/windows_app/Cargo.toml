@@ -1,0 +1,12 @@
+[package]
+name = "ymb_windows_app"
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+windows.workspace = true
+bevy.workspace = true
+ymb_windy.workspace = true
