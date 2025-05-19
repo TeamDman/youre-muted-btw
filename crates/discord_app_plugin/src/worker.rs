@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use ymb_ui_automation::gather_elements_at;
+use ymb_ui_automation::gather_tree_from_position;
 use ymb_worker_plugin::Sender;
 use ymb_worker_plugin::WorkerConfig;
 use ymb_worker_plugin::WorkerPlugin;
@@ -37,15 +38,8 @@ fn handle_threadbound_message(
     match msg {
         ThreadboundMessage::Lookup { pos } => {
             info!("Gathering elements at position: {:?}", pos);
-            let elements = gather_elements_at(*pos)?;
-            for (element, depth) in elements {
-                info!("Found element: {depth} {element:?}");
-                if element.get_name() == Ok("Mute".to_string()) {
-                    reply_tx.send(GameboundMessage::Found {
-                        drill_id: format!("{:?}", element),
-                    })?;
-                }
-            }
+            let tree = gather_tree_from_position(*pos)?;
+            info!("Gathered {:#?}", tree);
         }
     }
     Ok(())

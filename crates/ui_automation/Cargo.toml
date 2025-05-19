@@ -10,4 +10,5 @@ version.workspace = true
 bevy.workspace=true
 uiautomation.workspace=true
 serde.workspace=true
+eyre.workspace=true
 itertools.workspace=true

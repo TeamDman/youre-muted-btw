@@ -13,6 +13,7 @@ mod gather_children;
 mod stop_behaviour;
 mod update_drill_ids;
 mod gather_tree_from_position;
+mod drill;
 
 pub use gather_elements_at::*;
 pub use gather_ui_ancestors_including_start::*;
@@ -29,3 +30,4 @@ pub use gather_children::*;
 pub use stop_behaviour::*;
 pub use update_drill_ids::*;
 pub use gather_tree_from_position::*;
+pub use drill::*;

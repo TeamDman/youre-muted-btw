@@ -3,6 +3,10 @@ use std::collections::VecDeque;
 use bevy::reflect::Reflect;
 use serde::Deserialize;
 use serde::Serialize;
+use uiautomation::UIAutomation;
+use uiautomation::UIElement;
+
+use crate::Drillable;
 #[derive(Debug, Eq, PartialEq, Clone, Reflect, Default, Hash, Serialize, Deserialize)]
 pub enum DrillId {
     Root,
@@ -91,5 +95,15 @@ impl std::fmt::Display for DrillId {
             ),
             DrillId::Unknown => write!(f, "DrillId::Unknown"),
         }
+    }
+}
+
+impl DrillId {
+    pub fn resolve(self) -> eyre::Result<UIElement> {
+        let automation = UIAutomation::new()?;
+        let walker = automation.create_tree_walker()?;
+        let root = automation.get_root_element()?;
+        let elem = root.drill(&walker, self)?;
+        Ok(elem)
     }
 }
