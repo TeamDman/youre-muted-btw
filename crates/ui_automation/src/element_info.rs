@@ -1,6 +1,7 @@
 use crate::DrillId;
 use crate::IntoBevyIRect;
 use crate::RuntimeId;
+use crate::update_drill_ids_v2;
 use bevy::log::trace;
 use bevy::math::IRect;
 use bevy::reflect::Reflect;
@@ -115,7 +116,7 @@ impl ElementInfo {
         // Only child drill IDs are valid search targets
         // Short circuit here if looking for root
         let drill_id_inner = match drill_id {
-            DrillId::Child(drill_id_inner) => drill_id_inner,
+            DrillId::Path(drill_id_inner) => drill_id_inner,
             DrillId::Root => return Some(self),
             DrillId::Unknown => return None,
         };
@@ -128,7 +129,7 @@ impl ElementInfo {
         // Search children
         for child in self.children.as_ref()? {
             // Only child drill IDs are valid search targets
-            let DrillId::Child(child_drill_id) = &child.drill_id else {
+            let DrillId::Path(child_drill_id) = &child.drill_id else {
                 continue;
             };
 
@@ -136,7 +137,7 @@ impl ElementInfo {
             if child_drill_id.back() == drill_id_inner.front() {
                 // Recurse
                 return child
-                    .lookup_drill_id(DrillId::Child(drill_id_inner.into_iter().skip(1).collect()));
+                    .lookup_drill_id(DrillId::Path(drill_id_inner.into_iter().skip(1).collect()));
             }
         }
         None
@@ -157,7 +158,7 @@ impl ElementInfo {
         // Only child drill IDs are valid search targets
         // Short circuit here if looking for root
         let drill_id_inner = match drill_id {
-            DrillId::Child(drill_id_inner) => drill_id_inner,
+            DrillId::Path(drill_id_inner) => drill_id_inner,
             DrillId::Root => return Some(self),
             DrillId::Unknown => return None,
         };
@@ -170,14 +171,14 @@ impl ElementInfo {
         // Search children
         for child in self.children.as_deref_mut()?.iter_mut() {
             // Only child drill IDs are valid search targets
-            let DrillId::Child(child_drill_id) = &child.drill_id else {
+            let DrillId::Path(child_drill_id) = &child.drill_id else {
                 continue;
             };
 
             // If the child lays on our search path
             if child_drill_id.back() == drill_id_inner.front() {
                 // Recurse
-                return child.lookup_drill_id_mut(DrillId::Child(
+                return child.lookup_drill_id_mut(DrillId::Path(
                     drill_id_inner.into_iter().skip(1).collect(),
                 ));
             }
@@ -190,7 +191,7 @@ impl ElementInfo {
         let window_drill_id = match drill_id {
             DrillId::Root => return None,
             DrillId::Unknown => return None,
-            DrillId::Child(inner) => inner.iter().take(1).cloned().collect(),
+            DrillId::Path(inner) => inner.iter().take(1).cloned().collect(),
         };
         self.lookup_drill_id(window_drill_id)
     }
@@ -225,5 +226,9 @@ impl ElementInfo {
                 }
             })
             .join("")
+    }
+    pub fn try_update_drill_ids(&mut self) -> eyre::Result<()> {
+        update_drill_ids_v2(self)?;
+        Ok(())
     }
 }

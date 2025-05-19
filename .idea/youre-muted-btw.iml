@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/crates/app_under_cursor_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/args/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/assets/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/click_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/console/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/discord_app_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/exit_on_esc_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/host_cursor_position_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/inspector_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/lifecycle/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/logs/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/position_window_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/tray/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/ui_automation/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/ui_automation/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/ui_automation_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/welcome_gui/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/windows_app_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/windy/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/worker_plugin/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/worker_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

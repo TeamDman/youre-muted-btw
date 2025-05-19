@@ -4,7 +4,7 @@ use uiautomation::UIElement;
 use uiautomation::types::Point;
 
 pub fn find_element_at(
-    automation: &mut UIAutomation,
+    automation: &UIAutomation,
     pos: IVec2,
 ) -> Result<UIElement, uiautomation::Error> {
     automation.element_from_point(Point::new(pos.x, pos.y))

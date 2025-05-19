@@ -1,93 +1,67 @@
-use std::collections::VecDeque;
+use crate::DrillId;
+use crate::ElementInfo;
+use crate::gather_single_element_info;
 use eyre::Context;
+use eyre::bail;
+use eyre::eyre;
+use itertools::Itertools;
+use std::collections::VecDeque;
 use uiautomation::UIElement;
 use uiautomation::UITreeWalker;
 
-use crate::DrillId;
-
-#[derive(Debug)]
-pub enum DrillError {
-    UI(uiautomation::Error),
-    EmptyPath,
-    BadPath,
-    OutOfBounds {
-        given: u32,
-        max: u32,
-        error: uiautomation::Error,
-    },
-}
-impl std::error::Error for DrillError {}
-impl std::fmt::Display for DrillError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DrillError::UI(e) => write!(f, "UIAutomation error: {}", e),
-            DrillError::EmptyPath => write!(f, "Empty path"),
-            DrillError::BadPath => write!(f, "Bad path"),
-            DrillError::OutOfBounds { given, max, error } => write!(
-                f,
-                "Out of bounds: given {}, max {}, error: {}",
-                given, max, error
-            ),
-        }
-    }
-}
-impl From<uiautomation::Error> for DrillError {
-    fn from(e: uiautomation::Error) -> Self {
-        DrillError::UI(e)
-    }
-}
 pub trait Drillable {
-    fn drill<T: Into<DrillId>>(&self, walker: &UITreeWalker, path: T) -> eyre::Result<UIElement>;
+    fn drill<T: Into<DrillId>>(
+        self,
+        walker: &UITreeWalker,
+        path: T,
+    ) -> eyre::Result<VecDeque<(UIElement, ElementInfo)>>;
 }
 impl Drillable for UIElement {
-    fn drill<T: Into<DrillId>>(&self, walker: &UITreeWalker, path: T) -> eyre::Result<UIElement> {
-        let drill_id: DrillId = path.into();
+    fn drill<T: Into<DrillId>>(
+        self,
+        walker: &UITreeWalker,
+        path: T,
+    ) -> eyre::Result<VecDeque<(UIElement, ElementInfo)>> {
+        let drill_id = path.into();
         match drill_id {
-            DrillId::Child(path) => {
-                let mut path = path
-                    .into_iter()
-                    .map(|x| x as u32)
-                    .collect::<VecDeque<u32>>();
-                if path.iter().any(|x| (*x as i32) < 0) {
-                    return Err(DrillError::BadPath.into());
-                }
-                drill_inner(self, walker, &mut path)
+            DrillId::Root => {
+                let self_info = gather_single_element_info(&self)?;
+                Ok([(self, self_info)].into())
             }
-            DrillId::Root => Ok(self.clone()),
-            DrillId::Unknown => Err(DrillError::BadPath.into()),
+            DrillId::Unknown => bail!("Cannot drill using {}", drill_id),
+            DrillId::Path(x) if x.is_empty() => {
+                let self_info = gather_single_element_info(&self)?;
+                Ok([(self, self_info)].into())
+            }
+            DrillId::Path(path) => {
+                let mut rtn: VecDeque<(UIElement, ElementInfo)> = Default::default();
+                let self_info = gather_single_element_info(&self)?;
+                rtn.push_front((self, self_info));
+                while rtn.len() <= path.len() {
+                    let seeking_index = path[rtn.len() - 1];
+                    let (parent, parent_info) = rtn.back().unwrap();
+                    let mut child = walker.get_first_child(parent).wrap_err_with(|| {
+                        format!(
+                            "Resolving {} failed when getting first child of {:?}\n{rtn:#?}",
+                            DrillId::from(path.clone()).display_highlighted_index(rtn.len()),
+                            parent,
+                        )
+                    })?;
+                    for i in 0..seeking_index {
+                        child = walker.get_next_sibling(&child).wrap_err_with(|| {
+                            eyre!(
+                                "Resolving {} failed when getting next (i={i}) sibling of {:?}\n{rtn:#?}",
+                                DrillId::from(path.clone()).display_highlighted_index(rtn.len()),
+                                child,
+                            )
+                        })?;
+                    }
+                    let mut child_info = gather_single_element_info(&child)?;
+                    child_info.drill_id = path.iter().take(rtn.len()).cloned().collect();
+                    rtn.push_back((child, child_info));
+                }
+                Ok(rtn)
+            }
         }
-    }
-}
-fn drill_inner(
-    start: &UIElement,
-    walker: &UITreeWalker,
-    path: &mut VecDeque<u32>,
-) -> eyre::Result<UIElement> {
-    let target_index = match path.pop_front() {
-        Some(x) => x,
-        None => return Err(DrillError::EmptyPath.into()),
-    };
-    let mut child = walker
-        .get_first_child(start)
-        .wrap_err(format!("Resolving path {path:?} target {target_index} failed when getting first child of {start:#?}"))?;
-    let mut i = 0;
-    while i < target_index {
-        i += 1;
-        child = match walker.get_next_sibling(&child) {
-            Ok(x) => x,
-            Err(e) => {
-                return Err(DrillError::OutOfBounds {
-                    given: i,
-                    max: target_index,
-                    error: e,
-                }
-                .into())
-            }
-        };
-    }
-    if path.is_empty() {
-        Ok(child)
-    } else {
-        drill_inner(&child, walker, path)
     }
 }

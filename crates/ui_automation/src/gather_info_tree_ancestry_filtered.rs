@@ -2,20 +2,20 @@ use crate::DrillId;
 use crate::ElementInfo;
 use crate::gather_tree_filtered;
 use crate::gather_ui_ancestors_including_start;
-use crate::update_drill_ids;
+use eyre::bail;
 use uiautomation::UIAutomation;
 use uiautomation::UIElement;
 
 #[derive(Debug, Clone)]
-pub struct GatheredTree {
-    pub ui_tree: ElementInfo,
-    pub start_info: ElementInfo,
+pub struct AncestryTree {
+    pub tree: ElementInfo,
+    pub start: ElementInfo,
 }
 
-pub fn gather_tree_ancestry_filtered(
-    automation: &mut UIAutomation,
+pub fn gather_ancestry_tree(
+    automation: &UIAutomation,
     start_element: UIElement,
-) -> Result<GatheredTree, uiautomation::Error> {
+) -> eyre::Result<AncestryTree> {
     let walker = automation.create_tree_walker()?;
     let ancestors = gather_ui_ancestors_including_start(&start_element, &walker)?;
 
@@ -31,8 +31,7 @@ pub fn gather_tree_ancestry_filtered(
     };
     let mut root_info = gather_tree_filtered(&root_element, &walker, &ancestry_filter, 0)?;
     root_info.drill_id = DrillId::Root;
-
-    update_drill_ids(root_info.children.as_mut(), &DrillId::Root);
+    root_info.try_update_drill_ids()?;
 
     let start_info = root_info
         .get_descendents()
@@ -44,19 +43,15 @@ pub fn gather_tree_ancestry_filtered(
         })
         .cloned();
     let Some(start_info) = start_info else {
-        return Err(uiautomation::Error::new(
-            -1,
-            format!(
-                "Start element {:?} (id: {:?}) not found in tree: {:?}",
-                start_element,
-                start_element.get_runtime_id(),
-                root_info
-            )
-            .as_str(),
-        ));
+        bail!(
+            "Start element {:?} (id: {:?}) not found in tree: {:?}",
+            start_element,
+            start_element.get_runtime_id(),
+            root_info
+        );
     };
-    Ok(GatheredTree {
-        ui_tree: root_info,
-        start_info,
+    Ok(AncestryTree {
+        tree: root_info,
+        start: start_info,
     })
 }
