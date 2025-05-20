@@ -11,7 +11,6 @@ fn it_works() -> eyre::Result<()> {
     println!("Located Discord window: {elem:#?}");
     let walker = automation.create_tree_walker()?;
 
-
     let drill_ids = [
         [0, 1, 1, 0, 1, 0, 0, 0, 1, 3, 1, 1],
         [0, 0, 1, 0, 1, 0, 0, 0, 2, 3, 1, 1],

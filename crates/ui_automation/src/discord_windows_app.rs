@@ -3,8 +3,9 @@ use crate::ElementInfo;
 use bevy::math::IRect;
 use bevy::math::IVec2;
 use eyre::ensure;
+use uiautomation::UIAutomation;
+use uiautomation::UIMatcher;
 use uiautomation::controls::ControlType::Pane;
-use uiautomation::{UIAutomation, UIMatcher};
 
 pub struct DiscordWindowsApp;
 impl DiscordWindowsApp {
@@ -12,14 +13,8 @@ impl DiscordWindowsApp {
         ElementInfo {
             name: "#general | Guh-Uh-Guys - Discord".to_string(),
             bounding_rect: IRect {
-                min: IVec2::new(
-                    3832,
-                    568,
-                ),
-                max: IVec2::new(
-                    5768,
-                    1624,
-                ),
+                min: IVec2::new(3832, 568),
+                max: IVec2::new(5768, 1624),
             },
             control_type: Pane,
             localized_control_type: "pane".to_string(),

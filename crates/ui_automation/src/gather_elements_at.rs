@@ -1,9 +1,8 @@
 use bevy::math::IVec2;
 use std::collections::VecDeque;
-use uiautomation::types::Point;
 use uiautomation::UIAutomation;
 use uiautomation::UIElement;
-
+use uiautomation::types::Point;
 
 pub fn gather_elements_at(pos: IVec2) -> Result<Vec<(UIElement, usize)>, uiautomation::Error> {
     let automation = UIAutomation::new()?;

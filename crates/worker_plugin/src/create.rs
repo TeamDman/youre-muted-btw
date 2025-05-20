@@ -10,18 +10,8 @@ use std::thread;
 use windows::Win32::System::Com::COINIT_MULTITHREADED;
 use windows::Win32::System::Com::CoInitializeEx;
 
-pub fn create_worker_thread<
-    ThreadboundMessage,
-    GameboundMessage,
-    WorkerState,
->(
-    config: Res<
-        WorkerConfig<
-            ThreadboundMessage,
-            GameboundMessage,
-            WorkerState,
-        >,
-    >,
+pub fn create_worker_thread<ThreadboundMessage, GameboundMessage, WorkerState>(
+    config: Res<WorkerConfig<ThreadboundMessage, GameboundMessage, WorkerState>>,
     mut commands: Commands,
 ) where
     ThreadboundMessage: WorkerMessage,

@@ -8,7 +8,9 @@ use serde::Serialize;
 use uiautomation::UIAutomation;
 use uiautomation::UIElement;
 
-use crate::{gather_single_element_info, Drillable, ElementInfo};
+use crate::Drillable;
+use crate::ElementInfo;
+use crate::gather_single_element_info;
 #[derive(Debug, Eq, PartialEq, Clone, Reflect, Default, Hash, Serialize, Deserialize)]
 pub enum DrillId {
     Root,

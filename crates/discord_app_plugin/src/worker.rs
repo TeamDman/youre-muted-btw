@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use ymb_ui_automation::gather_elements_at;
 use ymb_ui_automation::gather_tree_from_position;
 use ymb_worker_plugin::Sender;
 use ymb_worker_plugin::WorkerConfig;

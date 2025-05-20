@@ -12,9 +12,7 @@ use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
 use uiautomation::controls::ControlType;
-use uiautomation::UIAutomation;
 use uiautomation::UIElement;
-use uiautomation::UIMatcher;
 
 #[derive(Debug, Clone, Reflect, PartialEq, Eq, Serialize, Deserialize)]
 #[reflect(from_reflect = false)]

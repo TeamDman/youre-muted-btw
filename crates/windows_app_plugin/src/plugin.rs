@@ -26,9 +26,12 @@ impl Plugin for WindowsAppPlugin {
         app.register_type::<WindowsAppKind>();
         app.add_systems(Update, handle_gamebound_messages);
         app.add_systems(Update, tick);
-        app.add_systems(Startup, |mut threadbound_messages: EventWriter<ThreadboundMessage>| {
-            threadbound_messages.write(ThreadboundMessage::Gather);
-        });
+        app.add_systems(
+            Startup,
+            |mut threadbound_messages: EventWriter<ThreadboundMessage>| {
+                threadbound_messages.write(ThreadboundMessage::Gather);
+            },
+        );
     }
 }
 
@@ -85,7 +88,10 @@ fn handle_gamebound_messages(
         }
         for (id, app) in msg.iter() {
             if !apps.iter().any(|(_, a)| a.id == *id) {
-                commands.spawn((app.clone(), Name::new(format!("WindowsApp: {:?}", app.title))));
+                commands.spawn((
+                    app.clone(),
+                    Name::new(format!("WindowsApp: {:?}", app.title)),
+                ));
             }
         }
     }

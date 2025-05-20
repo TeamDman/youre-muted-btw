@@ -1,5 +1,5 @@
-use bevy::math::{IRect, IVec2};
-
+use bevy::math::IRect;
+use bevy::math::IVec2;
 
 pub trait FromBevyIRect {
     fn from_bevy_irect(rect: IRect) -> Self;

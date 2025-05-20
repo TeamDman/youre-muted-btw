@@ -1,7 +1,11 @@
 use itertools::Itertools;
-use uiautomation::{UIElement, UITreeWalker};
+use uiautomation::UIElement;
+use uiautomation::UITreeWalker;
 
-use crate::{gather_single_element_info, ElementInfo, GatherChildrenable, StopBehaviour};
+use crate::ElementInfo;
+use crate::GatherChildrenable;
+use crate::StopBehaviour;
+use crate::gather_single_element_info;
 
 pub fn gather_tree_filtered(
     element: &UIElement,
