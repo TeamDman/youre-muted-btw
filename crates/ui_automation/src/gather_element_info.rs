@@ -1,8 +1,7 @@
-use bevy::math::IRect;
-use uiautomation::UIElement;
 use crate::DrillId;
 use crate::ElementInfo;
-use crate::RuntimeId;
+use bevy::math::IRect;
+use uiautomation::UIElement;
 
 pub fn gather_single_element_info(element: &UIElement) -> Result<ElementInfo, uiautomation::Error> {
     let name = element.get_name()?;
@@ -11,7 +10,7 @@ pub fn gather_single_element_info(element: &UIElement) -> Result<ElementInfo, ui
     let control_type = element.get_control_type()?.into();
     let localized_control_type = element.get_localized_control_type()?;
     let automation_id = element.get_automation_id()?;
-    let runtime_id = RuntimeId::new(element.get_runtime_id()?);
+    let runtime_id = element.get_runtime_id()?.into();
 
     let info = ElementInfo {
         name,

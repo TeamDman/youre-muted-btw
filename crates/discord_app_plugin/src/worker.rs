@@ -32,7 +32,7 @@ pub enum GameboundMessage {
 
 fn handle_threadbound_message(
     msg: &ThreadboundMessage,
-    reply_tx: &Sender<GameboundMessage>,
+    _reply_tx: &Sender<GameboundMessage>,
     _state: &mut (),
 ) -> Result<()> {
     match msg {

@@ -4,7 +4,6 @@ use crate::gather_single_element_info;
 use eyre::Context;
 use eyre::bail;
 use eyre::eyre;
-use itertools::Itertools;
 use std::collections::VecDeque;
 use uiautomation::UIElement;
 use uiautomation::UITreeWalker;
@@ -39,7 +38,7 @@ impl Drillable for UIElement {
                 rtn.push_front((self, self_info));
                 while rtn.len() <= path.len() {
                     let seeking_index = path[rtn.len() - 1];
-                    let (parent, parent_info) = rtn.back().unwrap();
+                    let (parent, _parent_info) = rtn.back().unwrap();
                     let mut child = walker.get_first_child(parent).wrap_err_with(|| {
                         format!(
                             "Resolving {} failed when getting first child of {:?}\n{rtn:#?}",

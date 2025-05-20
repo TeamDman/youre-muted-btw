@@ -13,6 +13,8 @@ mod stop_behaviour;
 mod update_drill_ids;
 mod gather_tree_from_position;
 mod drill;
+mod discord_mute_button;
+mod discord_windows_app;
 
 pub use gather_elements_at::*;
 pub use gather_ui_ancestors_including_start::*;
@@ -29,3 +31,5 @@ pub use stop_behaviour::*;
 pub use update_drill_ids::*;
 pub use gather_tree_from_position::*;
 pub use drill::*;
+pub use discord_mute_button::*;
+pub use discord_windows_app::*;
