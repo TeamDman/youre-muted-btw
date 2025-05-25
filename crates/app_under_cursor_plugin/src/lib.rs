@@ -20,9 +20,9 @@ fn update_app_under_cursor(
 ) {
     for (entity, app) in apps.iter() {
         if app.bounds.contains(**host_cursor_position) {
-            commands.entity(entity).insert(UnderCursor);
+            commands.entity(entity).try_insert(UnderCursor);
         } else {
-            commands.entity(entity).remove::<UnderCursor>();
+            commands.entity(entity).try_remove::<UnderCursor>();
         }
     }
 }

@@ -1,6 +1,6 @@
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use ymb_targetting_window_plugin::TargettingWindow;
 
 pub struct InspectorPlugin;
 
@@ -23,7 +23,7 @@ pub struct Inspector {
 
 fn toggle_global(
     mut inspector: ResMut<Inspector>,
-    mut window: Query<&mut Window, With<PrimaryWindow>>,
+    mut window: Query<&mut Window, With<TargettingWindow>>,
 ) {
     inspector.enabled ^= true;
     for mut window in &mut window {

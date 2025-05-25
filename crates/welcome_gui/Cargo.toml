@@ -20,5 +20,7 @@ ymb_windows_app_plugin.workspace = true
 ymb_click_plugin.workspace = true
 ymb_discord_app_plugin.workspace = true
 ymb_inspector_plugin.workspace = true
+ymb_tree_window_plugin.workspace = true
 ymb_assets.workspace = true
+ymb_targetting_window_plugin.workspace = true
 bevy-inspector-egui.workspace=true

@@ -1,3 +1,4 @@
+use bevy::log::debug;
 use bevy::math::IVec2;
 use uiautomation::UIAutomation;
 
@@ -8,6 +9,7 @@ use crate::gather_ancestry_tree;
 pub fn gather_tree_from_position(pos: IVec2) -> eyre::Result<AncestryTree> {
     let automation = UIAutomation::new()?;
     let start = find_element_at(&automation, pos)?;
+    debug!("Starting ancestry tree from: {}", start);
     let gathered = gather_ancestry_tree(&automation, start)?;
     Ok(gathered)
 }

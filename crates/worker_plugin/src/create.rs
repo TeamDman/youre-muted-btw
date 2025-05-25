@@ -54,7 +54,7 @@ pub fn create_worker_thread<ThreadboundMessage, GameboundMessage, WorkerState>(
             let msg = match (receiver)(&thread_rx, &mut state) {
                 Ok(msg) => msg,
                 Err(e) => {
-                    error!("[{}] Threadbound channel receiver failure: {:?}, quitting loop", name, e);
+                    error!("[{}] Threadbound channel receiver failure, quitting loop: {}", name, format!("{e:?}").trim());
                     break;
                 }
             };

@@ -46,9 +46,12 @@ fn update_host_cursor_position(
     if !config.refresh_interval.just_finished() {
         return;
     }
-    host_cursor_position.position = get_host_cursor_position().unwrap();
+    if let Ok(position) = get_host_cursor_position() {
+        host_cursor_position.position = position;
+    }
 }
 
+/// This may fail if, for example, the cursor is hovering over an Admin-level task manager window
 pub fn get_host_cursor_position() -> WindyResult<IVec2> {
     unsafe {
         let mut point = POINT::default();

@@ -24,6 +24,8 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/worker_plugin/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/worker_plugin/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/targetting_window_plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/tree_window_plugin/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

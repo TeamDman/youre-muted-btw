@@ -1,9 +1,8 @@
 use std::sync::Mutex;
-
 use bevy::ecs::schedule::BoxedCondition;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 use ymb_host_cursor_position_plugin::HostCursorPosition;
+use ymb_targetting_window_plugin::TargettingWindow;
 
 #[derive(Default)]
 pub struct WindowPositionPlugin {
@@ -31,7 +30,7 @@ impl Plugin for WindowPositionPlugin {
     }
 }
 fn position_window(
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut windows: Query<&mut Window, With<TargettingWindow>>,
     mut tick: Local<usize>,
     host_cursor_position: Res<HostCursorPosition>,
 ) -> bevy::ecs::error::Result<()> {

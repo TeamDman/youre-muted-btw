@@ -37,7 +37,8 @@ fn handle_threadbound_message(
     match msg {
         ThreadboundMessage::Lookup { pos } => {
             info!("Gathering elements at position: {:?}", pos);
-            let tree = gather_tree_from_position(*pos)?;
+            let mut tree = gather_tree_from_position(*pos)?.tree;
+            tree.try_update_drill_ids()?;
             info!("Gathered {:#?}", tree);
         }
     }

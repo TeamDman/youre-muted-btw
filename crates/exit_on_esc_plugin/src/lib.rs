@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 
 pub struct ExitOnEscPlugin;
 
@@ -10,7 +9,7 @@ impl Plugin for ExitOnEscPlugin {
 }
 fn exit_on_esc(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    window: Query<Entity, With<PrimaryWindow>>,
+    window: Query<Entity, With<Window>>,
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
