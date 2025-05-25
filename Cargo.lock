@@ -6660,6 +6660,7 @@ name = "ymb_ui_automation"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy-inspector-egui",
  "eyre",
  "itertools 0.14.0",
  "serde",
@@ -6671,6 +6672,7 @@ name = "ymb_ui_automation_plugin"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy-inspector-egui",
  "chrono",
  "ymb_host_cursor_position_plugin",
  "ymb_ui_automation",
@@ -6697,6 +6699,7 @@ dependencies = [
  "ymb_position_window_plugin",
  "ymb_targetting_window_plugin",
  "ymb_tree_window_plugin",
+ "ymb_ui_automation_plugin",
  "ymb_windows_app_plugin",
  "ymb_world_inspector_plugin",
 ]

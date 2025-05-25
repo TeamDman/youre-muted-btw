@@ -16,7 +16,7 @@ impl DiscordWindowsApp {
                 min: IVec2::new(3832, 568),
                 max: IVec2::new(5768, 1624),
             },
-            control_type: Pane,
+            control_type: Pane.into(),
             localized_control_type: "pane".to_string(),
             class_name: "Chrome_WidgetWin_1".to_string(),
             automation_id: "".to_string(),
@@ -33,7 +33,7 @@ impl DiscordWindowsApp {
             .classname("Chrome_WidgetWin_1")
     }
     pub fn try_eq(mute_button_element_info: &ElementInfo) -> eyre::Result<()> {
-        ensure!(mute_button_element_info.control_type == Pane);
+        ensure!(mute_button_element_info.control_type == Pane.into());
         ensure!(mute_button_element_info.name.contains("Discord"));
         Ok(())
     }

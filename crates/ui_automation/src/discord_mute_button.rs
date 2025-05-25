@@ -15,7 +15,7 @@ impl DiscordMuteButton {
                 min: IVec2::new(4158, 1550),
                 max: IVec2::new(4199, 1590),
             },
-            control_type: Button,
+            control_type: Button.into(),
             localized_control_type: "button".to_string(),
             class_name: "".to_string(),
             automation_id: "".to_string(),
@@ -32,7 +32,7 @@ impl DiscordMuteButton {
             .classname("")
     }
     pub fn try_eq(mute_button_element_info: &ElementInfo) -> eyre::Result<()> {
-        ensure!(mute_button_element_info.control_type == Button);
+        ensure!(mute_button_element_info.control_type == Button.into());
         ensure!(mute_button_element_info.name == "Mute");
         let rect = mute_button_element_info.bounding_rect;
         let width = rect.width() as f64;

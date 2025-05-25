@@ -12,3 +12,4 @@ uiautomation.workspace=true
 serde.workspace=true
 eyre.workspace=true
 itertools.workspace=true
+bevy-inspector-egui.workspace=true

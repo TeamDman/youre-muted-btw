@@ -15,6 +15,7 @@ mod gather_ui_ancestors_including_start;
 mod runtime_id;
 mod stop_behaviour;
 mod update_drill_ids;
+mod control_type;
 
 pub use conversion_traits::*;
 pub use discord_mute_button::*;
@@ -33,3 +34,4 @@ pub use gather_ui_ancestors_including_start::*;
 pub use runtime_id::*;
 pub use stop_behaviour::*;
 pub use update_drill_ids::*;
+pub use control_type::*;

@@ -1,3 +1,4 @@
+use crate::control_type::YMBControlType;
 use crate::update_drill_ids_v2;
 use crate::DrillId;
 use crate::IntoBevyIRect;
@@ -7,52 +8,23 @@ use bevy::log::trace;
 use bevy::math::IRect;
 use bevy::reflect::Reflect;
 use itertools::Itertools;
-use serde::de::Deserializer;
-use serde::de::Error as DeError;
-use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
 use uiautomation::controls::ControlType;
 use uiautomation::UIElement;
 
 #[derive(Debug, Clone, Reflect, PartialEq, Eq, Serialize, Deserialize, Component)]
-#[reflect(from_reflect = false)]
+#[reflect(no_field_bounds)]
 pub struct ElementInfo {
     pub name: String,
     pub bounding_rect: IRect,
-    #[serde(
-        serialize_with = "serialize_control_type_as_u32",
-        deserialize_with = "deserialize_control_type_from_u32"
-    )]
-    #[reflect(ignore)]
-    pub control_type: ControlType,
+    pub control_type: YMBControlType,
     pub localized_control_type: String,
     pub class_name: String,
     pub automation_id: String,
-    #[reflect(ignore)]
     pub runtime_id: RuntimeId,
     pub drill_id: DrillId,
-    #[reflect(ignore)]
     pub children: Option<Vec<ElementInfo>>,
-}
-
-pub fn serialize_control_type_as_u32<S>(
-    control_type: &ControlType,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_i32(*control_type as _)
-}
-
-pub fn deserialize_control_type_from_u32<'de, D>(deserializer: D) -> Result<ControlType, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let val = i32::deserialize(deserializer)?;
-    ControlType::try_from(val)
-        .map_err(|_| D::Error::custom(format!("Invalid ControlType value: {}", val)))
 }
 
 impl std::fmt::Display for ElementInfo {
@@ -65,7 +37,7 @@ impl Default for ElementInfo {
         ElementInfo {
             name: "UNKNOWN ELEMENT INFO".to_string(),
             bounding_rect: IRect::new(0, 0, 0, 0),
-            control_type: ControlType::Pane,
+            control_type: ControlType::Pane.into(),
             localized_control_type: "".to_string(),
             class_name: "".to_string(),
             automation_id: "".to_string(),

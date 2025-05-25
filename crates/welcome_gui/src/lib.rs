@@ -14,6 +14,7 @@ use ymb_inspector_plugin::InspectorPlugin;
 use ymb_position_window_plugin::WindowPositionPlugin;
 use ymb_targetting_window_plugin::TargettingWindowPlugin;
 use ymb_tree_window_plugin::TreeWindowPlugin;
+use ymb_ui_automation_plugin::ElementInfoPlugin;
 use ymb_windows_app_plugin::WindowsAppPlugin;
 use ymb_world_inspector_plugin::YMBWorldInspectorPlugin;
 
@@ -43,6 +44,7 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
         .add_plugins(DiscordAppPlugin)
         .add_plugins(TreeWindowPlugin)
         .add_plugins(YMBEguiPlugin)
+        .add_plugins(ElementInfoPlugin)
         .add_plugins(YMBWorldInspectorPlugin)
         .run();
     Ok(())

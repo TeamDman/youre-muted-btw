@@ -3,8 +3,8 @@ use crate::ElementInfo;
 use crate::gather_tree_filtered;
 use crate::gather_ui_ancestors_including_start;
 use bevy::ecs::component::Component;
+use bevy::log::warn;
 use bevy::reflect::Reflect;
-use eyre::bail;
 use uiautomation::UIAutomation;
 use uiautomation::UIElement;
 
@@ -36,22 +36,24 @@ pub fn gather_ancestry_tree(
     root_info.drill_id = DrillId::Root;
     root_info.try_update_drill_ids()?;
 
-    let start_info = root_info
+    let start_element_id = start_element.get_runtime_id()?;
+    let start_info = match root_info
         .get_descendents()
         .into_iter()
         .chain(std::iter::once(&root_info))
-        .find(|info| match start_element.get_runtime_id() {
-            Ok(id) => info.runtime_id == id,
-            Err(_) => false,
-        })
-        .cloned();
-    let Some(start_info) = start_info else {
-        bail!(
-            "Start element {:?} (id: {:?}) not found in tree: {:?}",
-            start_element,
-            start_element.get_runtime_id(),
-            root_info
-        );
+        .find(|info| info.runtime_id == start_element_id)
+        .cloned()
+    {
+        Some(x) => x,
+        None => {
+            warn!(
+                "Start element {:?} (id: {:?}) not found in tree: {:?}",
+                start_element,
+                start_element.get_runtime_id(),
+                root_info
+            );
+            root_info.clone()
+        }
     };
     Ok(AncestryTree {
         tree: root_info,
