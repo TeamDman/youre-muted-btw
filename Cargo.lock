@@ -6563,6 +6563,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ymb_egui_plugin"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_egui",
+]
+
+[[package]]
 name = "ymb_exit_on_esc_plugin"
 version = "0.1.0"
 dependencies = [
@@ -6663,6 +6671,8 @@ name = "ymb_ui_automation_plugin"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "chrono",
+ "ymb_host_cursor_position_plugin",
  "ymb_ui_automation",
  "ymb_worker_plugin",
 ]
@@ -6672,7 +6682,6 @@ name = "ymb_welcome_gui"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy-inspector-egui",
  "eyre",
  "windows 0.61.1",
  "ymb_app_under_cursor_plugin",
@@ -6680,6 +6689,7 @@ dependencies = [
  "ymb_assets",
  "ymb_click_plugin",
  "ymb_discord_app_plugin",
+ "ymb_egui_plugin",
  "ymb_exit_on_esc_plugin",
  "ymb_host_cursor_position_plugin",
  "ymb_inspector_plugin",
@@ -6688,6 +6698,7 @@ dependencies = [
  "ymb_targetting_window_plugin",
  "ymb_tree_window_plugin",
  "ymb_windows_app_plugin",
+ "ymb_world_inspector_plugin",
 ]
 
 [[package]]
@@ -6717,6 +6728,14 @@ dependencies = [
  "crossbeam-channel",
  "eyre",
  "windows 0.61.1",
+]
+
+[[package]]
+name = "ymb_world_inspector_plugin"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
 ]
 
 [[package]]

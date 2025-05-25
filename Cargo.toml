@@ -17,6 +17,8 @@ ymb_console = { path = "crates/console" }
 ymb_logs = { path = "crates/logs" }
 ymb_welcome_gui = { path = "crates/welcome_gui" }
 ymb_position_window_plugin = { path = "crates/position_window_plugin" }
+ymb_world_inspector_plugin = { path = "crates/world_inspector_plugin" }
+ymb_egui_plugin = { path = "crates/egui_plugin" }
 ymb_exit_on_esc_plugin = { path = "crates/exit_on_esc_plugin" }
 ymb_app_under_cursor_plugin = { path = "crates/app_under_cursor_plugin" }
 ymb_windows_app_plugin = { path = "crates/windows_app_plugin" }
@@ -59,6 +61,8 @@ bevy-inspector-egui = "0.31.0"
 crossbeam-channel = "0.5.15"
 # tokio = { version = "1.45.0", features = ["full"] }
 itertools = "0.14.0"
+# chrono = { version = "0.4.41", features = ["serde"] }
+chrono = { version = "0.4.41", features = [] }
 
 [package]
 name = "youre-muted-btw"

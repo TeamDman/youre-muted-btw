@@ -2,6 +2,7 @@ use crate::update_drill_ids_v2;
 use crate::DrillId;
 use crate::IntoBevyIRect;
 use crate::RuntimeId;
+use bevy::ecs::component::Component;
 use bevy::log::trace;
 use bevy::math::IRect;
 use bevy::reflect::Reflect;
@@ -14,7 +15,7 @@ use serde::Serialize;
 use uiautomation::controls::ControlType;
 use uiautomation::UIElement;
 
-#[derive(Debug, Clone, Reflect, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[reflect(from_reflect = false)]
 pub struct ElementInfo {
     pub name: String,

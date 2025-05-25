@@ -8,5 +8,7 @@ version.workspace = true
 
 [dependencies]
 bevy.workspace=true
+chrono.workspace=true
 ymb_worker_plugin.workspace=true
 ymb_ui_automation.workspace=true
+ymb_host_cursor_position_plugin.workspace=true

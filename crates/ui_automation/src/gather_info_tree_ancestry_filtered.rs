@@ -2,11 +2,14 @@ use crate::DrillId;
 use crate::ElementInfo;
 use crate::gather_tree_filtered;
 use crate::gather_ui_ancestors_including_start;
+use bevy::ecs::component::Component;
+use bevy::reflect::Reflect;
 use eyre::bail;
 use uiautomation::UIAutomation;
 use uiautomation::UIElement;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect, Component)]
+#[reflect(from_reflect = false)]
 pub struct AncestryTree {
     pub tree: ElementInfo,
     pub start: ElementInfo,

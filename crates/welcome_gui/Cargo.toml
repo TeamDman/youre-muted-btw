@@ -23,4 +23,5 @@ ymb_inspector_plugin.workspace = true
 ymb_tree_window_plugin.workspace = true
 ymb_assets.workspace = true
 ymb_targetting_window_plugin.workspace = true
-bevy-inspector-egui.workspace=true
+ymb_world_inspector_plugin.workspace = true
+ymb_egui_plugin.workspace = true

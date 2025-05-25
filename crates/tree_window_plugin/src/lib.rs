@@ -1,6 +1,9 @@
 use bevy::ecs::schedule::ScheduleLabel;
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContext, EguiMultipassSchedule};
+use bevy::window::WindowResolution;
+use bevy_egui::EguiContext;
+use bevy_egui::EguiMultipassSchedule;
+use bevy_egui::egui;
 
 pub struct TreeWindowPlugin;
 
@@ -10,6 +13,7 @@ impl Plugin for TreeWindowPlugin {
         app.add_systems(UITreeWindowEguiContextPass, ui_tree_window);
     }
 }
+const DEFAULT_SIZE: (f32, f32) = (320., 160.);
 
 #[derive(Debug, Component, Reflect)]
 pub struct UITreeWindow;
@@ -21,6 +25,7 @@ fn spawn_window(mut commands: Commands) {
     commands.spawn((
         Window {
             title: "UI Tree".to_string(),
+            resolution: WindowResolution::new(DEFAULT_SIZE.0, DEFAULT_SIZE.1),
             ..default()
         },
         UITreeWindow,
@@ -31,8 +36,10 @@ fn spawn_window(mut commands: Commands) {
 
 fn ui_tree_window(mut window: Query<&mut EguiContext, With<UITreeWindow>>) -> Result {
     let mut ctx = window.single_mut()?;
-    egui::Window::new("ui tree").show(ctx.get_mut(), |ui| {
-        ui.label("ui tree");
+    egui::CentralPanel::default().show(ctx.get_mut(), |ui| {
+        egui::ScrollArea::both().show(ui, |ui| {
+            ui.label("ui tree");
+        });
     });
     Ok(())
 }
