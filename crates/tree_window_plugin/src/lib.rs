@@ -4,6 +4,9 @@ use bevy::window::WindowResolution;
 use bevy_egui::EguiContext;
 use bevy_egui::EguiMultipassSchedule;
 use bevy_egui::egui;
+use ymb_ui_automation::AncestryTree;
+use ymb_ui_automation::ElementInfo;
+use ymb_ui_automation_plugin::LatestTree; // Added import
 
 pub struct TreeWindowPlugin;
 
@@ -34,12 +37,39 @@ fn spawn_window(mut commands: Commands) {
     ));
 }
 
-fn ui_tree_window(mut window: Query<&mut EguiContext, With<UITreeWindow>>) -> Result {
+fn ui_tree_window(
+    mut window: Query<&mut EguiContext, With<UITreeWindow>>,
+    latest: Query<&AncestryTree, With<LatestTree>>,
+) -> Result {
     let mut ctx = window.single_mut()?;
+    let Ok(AncestryTree { tree, start: _ }) = latest.single() else {
+        return Ok(());
+    };
     egui::CentralPanel::default().show(ctx.get_mut(), |ui| {
         egui::ScrollArea::both().show(ui, |ui| {
-            ui.label("ui tree");
+            // ui.label("ui tree"); // Removed old label
+            render_element_info_node(ui, tree);
         });
     });
     Ok(())
+}
+
+fn render_element_info_node(ui: &mut egui::Ui, element_info: &ElementInfo) {
+    let id = ui.make_persistent_id(&element_info.drill_id);
+    let header_text = format!(
+        "{} ({}) - {}",
+        element_info.name, element_info.localized_control_type, element_info.drill_id
+    );
+
+    egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, false)
+        .show_header(ui, |ui| {
+            ui.label(header_text);
+        })
+        .body(|ui| {
+            if let Some(children) = &element_info.children {
+                for child in children {
+                    render_element_info_node(ui, child);
+                }
+            }
+        });
 }

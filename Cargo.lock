@@ -6528,18 +6528,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ymb_click_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "ymb_app_under_cursor_plugin",
- "ymb_assets",
- "ymb_discord_app_plugin",
- "ymb_host_cursor_position_plugin",
- "ymb_windows_app_plugin",
-]
-
-[[package]]
 name = "ymb_console"
 version = "0.1.0"
 dependencies = [
@@ -6547,19 +6535,6 @@ dependencies = [
  "windows 0.61.1",
  "ymb_lifecycle",
  "ymb_logs",
-]
-
-[[package]]
-name = "ymb_discord_app_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "holda",
- "windows 0.61.1",
- "ymb_ui_automation",
- "ymb_windows_app_plugin",
- "ymb_windy",
- "ymb_worker_plugin",
 ]
 
 [[package]]
@@ -6588,15 +6563,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ymb_inspector_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy-inspector-egui",
- "ymb_targetting_window_plugin",
-]
-
-[[package]]
 name = "ymb_lifecycle"
 version = "0.1.0"
 dependencies = [
@@ -6616,21 +6582,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "ymb_position_window_plugin"
+name = "ymb_targeting_circle"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "ymb_host_cursor_position_plugin",
- "ymb_targetting_window_plugin",
-]
-
-[[package]]
-name = "ymb_targetting_window_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_egui",
+ "eyre",
+ "ymb_app_under_cursor_plugin",
  "ymb_assets",
+ "ymb_host_cursor_position_plugin",
+ "ymb_ui_automation",
+ "ymb_windows_app_plugin",
+ "ymb_worker_plugin",
 ]
 
 [[package]]
@@ -6652,7 +6614,10 @@ name = "ymb_tree_window_plugin"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy-inspector-egui",
  "bevy_egui",
+ "ymb_ui_automation",
+ "ymb_ui_automation_plugin",
 ]
 
 [[package]]
@@ -6689,15 +6654,11 @@ dependencies = [
  "ymb_app_under_cursor_plugin",
  "ymb_args",
  "ymb_assets",
- "ymb_click_plugin",
- "ymb_discord_app_plugin",
  "ymb_egui_plugin",
  "ymb_exit_on_esc_plugin",
  "ymb_host_cursor_position_plugin",
- "ymb_inspector_plugin",
  "ymb_logs",
- "ymb_position_window_plugin",
- "ymb_targetting_window_plugin",
+ "ymb_targeting_circle",
  "ymb_tree_window_plugin",
  "ymb_ui_automation_plugin",
  "ymb_windows_app_plugin",

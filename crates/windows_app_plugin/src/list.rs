@@ -35,7 +35,7 @@ unsafe extern "system" fn enum_windows_callback(
 ) -> BOOL {
     if unsafe { IsWindowVisible(hwnd).as_bool() } {
         // Get window title
-        let mut text_buf = [0u16; 256];
+        let mut text_buf = [0u16; 1024];
         let text_len = unsafe { GetWindowTextW(hwnd, &mut text_buf) };
         let title = String::from_utf16_lossy(&text_buf[..text_len as usize]);
 
