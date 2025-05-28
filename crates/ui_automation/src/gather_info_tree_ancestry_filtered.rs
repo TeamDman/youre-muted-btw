@@ -2,7 +2,6 @@ use crate::DrillId;
 use crate::ElementInfo;
 use crate::gather_tree_filtered;
 use crate::gather_ui_ancestors_including_start;
-use bevy::ecs::component::Component;
 use bevy::log::warn;
 use bevy::reflect::Reflect;
 use uiautomation::UIAutomation;

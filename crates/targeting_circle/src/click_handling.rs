@@ -2,12 +2,9 @@ use bevy::prelude::*;
 use ymb_app_under_cursor_plugin::UnderCursor;
 use ymb_assets::Sound;
 use ymb_host_cursor_position_plugin::HostCursorPosition;
-use ymb_ui_automation_plugin::UIWorkerThreadboundMessage;
 use ymb_windows_app_plugin::WindowsApp;
 use ymb_windows_app_plugin::WindowsAppKind;
-
 use crate::TargetingCircleClicked;
-use crate::TargetingCircleWindow;
 use crate::TargetingState;
 
 pub(super) struct ClickHandlingPlugin;
@@ -15,7 +12,7 @@ pub(super) struct ClickHandlingPlugin;
 impl Plugin for ClickHandlingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, handle_click);
-        app.add_systems(Update, forward_click_events);
+        // app.add_systems(Update, forward_click_events);
         app.add_systems(Update, play_sound);
     }
 }
@@ -76,14 +73,14 @@ fn play_sound(
     }
 }
 
-fn forward_click_events(
-    mut receiver: EventReader<TargetingCircleClicked>,
-    mut writer: EventWriter<UIWorkerThreadboundMessage>,
-) {
-    for event in receiver.read() {
-        writer.write(UIWorkerThreadboundMessage::UpdateFromPos {
-            host_cursor_position: event.position,
-        });
-        info!("Forwarded TargetingCircleClicked event: {:?}", event);
-    }
-}
+// fn forward_click_events(
+//     mut receiver: EventReader<TargetingCircleClicked>,
+//     mut writer: EventWriter<UIWorkerThreadboundMessage>,
+// ) {
+//     for event in receiver.read() {
+//         writer.write(UIWorkerThreadboundMessage::UpdateFromPos {
+//             host_cursor_position: event.position,
+//         });
+//         info!("Forwarded TargetingCircleClicked event: {:?}", event);
+//     }
+// }

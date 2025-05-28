@@ -1,19 +1,22 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
+use std::any::type_name;
 use std::time::Duration;
-use ymb_host_cursor_position_plugin::HostCursorPosition;
+use uiautomation::UIAutomation;
+use uiautomation::UIElement;
 use ymb_ui_automation::AncestryTree;
+use ymb_ui_automation::DiscordMuteButton;
 use ymb_ui_automation::ElementInfo;
+use ymb_ui_automation::MuteButtonState;
 use ymb_ui_automation::YMBControlType;
-use ymb_ui_automation::gather_root;
-use ymb_ui_automation::gather_tree_from_position;
 use ymb_worker_plugin::Sender;
 use ymb_worker_plugin::WorkerConfig;
 use ymb_worker_plugin::WorkerPlugin;
+use ymb_worker_plugin::WorkerStateTrait;
 
-pub struct ElementInfoPlugin;
+pub struct UIAutomationPlugin;
 
-impl Plugin for ElementInfoPlugin {
+impl Plugin for UIAutomationPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(WorkerPlugin {
             config: WorkerConfig::<
@@ -36,112 +39,115 @@ impl Plugin for ElementInfoPlugin {
         app.add_systems(Update, handle_gamebound_messages);
         app.add_systems(Update, tick_worker);
         app.add_systems(Startup, startup_fetch);
-        app.init_resource::<ElementInfoPluginConfig>();
-        app.register_type::<ElementInfoPluginConfig>();
-        app.register_type::<LatestInfo>();
-        app.register_type::<RevealIntent>();
+        app.init_resource::<UIAutomationPluginConfig>();
+        app.register_type::<UIAutomationPluginConfig>();
         app.register_type::<ElementInfo>();
         app.register_type::<AncestryTree>();
         app.register_type::<YMBControlType>();
+        app.register_type::<MuteButtonState>();
+        app.register_type::<DiscordMuteButton>();
         app.register_type_data::<YMBControlType, InspectorEguiImpl>();
     }
 }
+
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
-pub struct ElementInfoPluginConfig {
+pub struct UIAutomationPluginConfig {
     pub refresh_interval: Timer,
 }
 
-impl Default for ElementInfoPluginConfig {
+impl Default for UIAutomationPluginConfig {
     fn default() -> Self {
         Self {
-            refresh_interval: Timer::new(
-                Duration::MAX, // disable for now
-                TimerMode::Repeating,
-            ),
+            refresh_interval: Timer::new(Duration::from_secs(2), TimerMode::Repeating),
         }
     }
 }
 
-#[derive(Default)]
-pub struct UIWorkerState;
+pub struct UIWorkerState {
+    automation: UIAutomation,
+    mute_button: Option<UIElement>,
+}
+impl WorkerStateTrait for UIWorkerState {
+    type Error = BevyError;
+
+    fn try_default() -> std::result::Result<Self, Self::Error> {
+        let automation = UIAutomation::new()?;
+        Ok(Self {
+            automation,
+            mute_button: None,
+        })
+    }
+}
 
 #[derive(Debug, Reflect, Clone, Event)]
 pub enum UIWorkerThreadboundMessage {
-    UpdateFromPos { host_cursor_position: IVec2 },
-    UpdateRoot,
+    DetectMuteButtonState,
+}
+
+#[derive(Debug, Reflect, Clone, Event)]
+#[reflect(from_reflect = false)]
+pub enum UIWorkerGameboundMessage {
+    MuteButtonObserved { state: MuteButtonState },
 }
 
 fn handle_threadbound_message(
     msg: &UIWorkerThreadboundMessage,
     reply_tx: &Sender<UIWorkerGameboundMessage>,
-    _state: &mut UIWorkerState,
+    state: &mut UIWorkerState,
 ) -> Result<()> {
     info!("Handling threadbound message: {:?}", msg);
     match msg {
-        UIWorkerThreadboundMessage::UpdateFromPos {
-            host_cursor_position,
-        } => {
-            let tree = gather_tree_from_position(*host_cursor_position)?;
-            reply_tx.send(UIWorkerGameboundMessage::UIFromPos { tree })?;
-        }
-        UIWorkerThreadboundMessage::UpdateRoot => {
-            let root = gather_root()?;
-            reply_tx.send(UIWorkerGameboundMessage::UIFromRoot { root })?;
+        UIWorkerThreadboundMessage::DetectMuteButtonState => {
+            if state.mute_button.is_none() {
+                if let Ok(element) = DiscordMuteButton::try_find(&state.automation) {
+                    info!("Found mute button element: {:?}", element);
+                    state.mute_button = Some(element);
+                }
+            }
+            if let Some(mute_button) = &state.mute_button {
+                match MuteButtonState::try_from(mute_button) {
+                    Ok(state) => {
+                        reply_tx.send(UIWorkerGameboundMessage::MuteButtonObserved { state })?;
+                    }
+                    Err(x) => {
+                        warn!("Failed to get toggle state from mute button: {:?}", x);
+                        state.mute_button = None; // Reset the mute button if an error occurs
+                        reply_tx.send(UIWorkerGameboundMessage::MuteButtonObserved {
+                            state: MuteButtonState::NotMuted, // Default to Off if error occurs
+                        })?;
+                    }
+                }
+            } else {
+                warn!("Mute button not found.");
+            }
         }
     }
     info!("Threadbound message handled successfully.");
     Ok(())
 }
 
-#[derive(Debug, Reflect, Clone, Event)]
-#[reflect(from_reflect = false)]
-pub enum UIWorkerGameboundMessage {
-    UIFromPos { tree: AncestryTree },
-    UIFromRoot { root: ElementInfo },
-}
-
-#[derive(Component, Reflect)]
-pub struct LatestInfo;
-
-#[derive(Component, Reflect)]
-pub struct RevealIntent {
-    pub element_info: ElementInfo,
-}
-
 fn handle_gamebound_messages(
     mut messages: EventReader<UIWorkerGameboundMessage>,
+    mut mute_button: Query<&mut MuteButtonState, With<DiscordMuteButton>>,
     mut commands: Commands,
-    latest_tree: Query<Entity, With<LatestInfo>>,
 ) -> Result {
-    let Some(msg) = messages.read().last() else {
-        return Ok(());
-    };
-    match msg {
-        UIWorkerGameboundMessage::UIFromPos { tree } => {
-            let time = chrono::Local::now();
-            commands.spawn((
-                tree.tree.clone(),
-                LatestInfo,
-                RevealIntent {
-                    element_info: tree.start.clone(),
-                },
-                Name::new(format!("Tree - {time}")),
-            ));
+    for msg in messages.read() {
+        match msg {
+            UIWorkerGameboundMessage::MuteButtonObserved { state } => {
+                info!("Received mute button state: {:?}", state);
+                if let Ok(mut toggle_state) = mute_button.single_mut() {
+                    *toggle_state = state.clone();
+                    info!("Updated toggle state: {:?}", toggle_state);
+                } else {
+                    commands.spawn((
+                        DiscordMuteButton,
+                        state.clone(),
+                        Name::new(type_name::<DiscordMuteButton>()),
+                    ));
+                }
+            }
         }
-        UIWorkerGameboundMessage::UIFromRoot { root } => {
-            let time = chrono::Local::now();
-            commands.spawn((
-                root.clone(),
-                LatestInfo,
-                Name::new(format!("Tree - {time}")),
-            ));
-        }
-    }
-
-    // Remove the previous latest element if it exists
-    if let Ok(entity) = latest_tree.single() {
-        commands.entity(entity).try_remove::<LatestInfo>();
     }
 
     Ok(())
@@ -149,19 +155,16 @@ fn handle_gamebound_messages(
 
 fn tick_worker(
     mut threadbound_messages: EventWriter<UIWorkerThreadboundMessage>,
-    mut config: ResMut<ElementInfoPluginConfig>,
+    mut config: ResMut<UIAutomationPluginConfig>,
     time: Res<Time>,
-    host_cursor_position: Res<HostCursorPosition>,
 ) {
     config.refresh_interval.tick(time.delta());
     if !config.refresh_interval.just_finished() {
         return;
     }
-    threadbound_messages.write(UIWorkerThreadboundMessage::UpdateFromPos {
-        host_cursor_position: host_cursor_position.position,
-    });
+    threadbound_messages.write(UIWorkerThreadboundMessage::DetectMuteButtonState);
 }
 
 fn startup_fetch(mut threadbound_messages: EventWriter<UIWorkerThreadboundMessage>) {
-    threadbound_messages.write(UIWorkerThreadboundMessage::UpdateRoot);
+    threadbound_messages.write(UIWorkerThreadboundMessage::DetectMuteButtonState);
 }

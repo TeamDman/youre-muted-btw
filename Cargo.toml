@@ -59,6 +59,7 @@ crossbeam-channel = "0.5.15"
 itertools = "0.14.0"
 # chrono = { version = "0.4.41", features = ["serde"] }
 chrono = { version = "0.4.41", features = [] }
+winc = "0.3.0"
 
 [package]
 name = "youre-muted-btw"

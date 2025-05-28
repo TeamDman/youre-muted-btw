@@ -5,7 +5,6 @@ use bevy_egui::EguiContext;
 use bevy_egui::EguiMultipassSchedule;
 use bevy_egui::egui;
 use ymb_ui_automation::ElementInfo;
-use ymb_ui_automation_plugin::LatestInfo; // Added import
 
 pub struct TreeWindowPlugin;
 
@@ -38,7 +37,8 @@ fn spawn_window(mut commands: Commands) {
 
 fn ui_tree_window(
     mut window: Query<&mut EguiContext, With<UITreeWindow>>,
-    latest: Query<&ElementInfo, With<LatestInfo>>,
+    // latest: Query<&ElementInfo, With<LatestInfo>>,
+    latest: Query<&ElementInfo>,
 ) -> Result {
     let mut ctx = window.single_mut()?;
     let Ok(tree) = latest.single() else {

@@ -1,11 +1,14 @@
 use crate::ElementInfo;
+use bevy::ecs::component::Component;
 use bevy::math::IRect;
 use bevy::math::IVec2;
+use bevy::reflect::Reflect;
 use eyre::ensure;
 use uiautomation::UIAutomation;
-use uiautomation::UIMatcher;
+use uiautomation::UIElement;
 use uiautomation::controls::ControlType::Button;
 
+#[derive(Component, Reflect, Debug)]
 pub struct DiscordMuteButton;
 impl DiscordMuteButton {
     pub fn get_sample_element_info() -> ElementInfo {
@@ -24,12 +27,25 @@ impl DiscordMuteButton {
             children: None,
         }
     }
-    pub fn get_matcher(automation: &UIAutomation) -> UIMatcher {
-        automation
+    pub fn try_find(automation: &UIAutomation) -> eyre::Result<UIElement> {
+        let matcher = automation
             .create_matcher()
             .name("Mute")
-            .control_type(Button)
-            .classname("")
+            .control_type(Button);
+        let first = matcher.find_first();
+        if let Ok(element_info) = first {
+            return Ok(element_info);
+        }
+
+        let matcher = automation
+            .create_matcher()
+            .name("Unmute")
+            .control_type(Button);
+        let second = matcher.find_first();
+        if let Ok(element_info) = second {
+            return Ok(element_info);
+        }
+        eyre::bail!("Discord mute button not found ({first:?}, {second:?})");
     }
     pub fn try_eq(mute_button_element_info: &ElementInfo) -> eyre::Result<()> {
         ensure!(mute_button_element_info.control_type == Button.into());

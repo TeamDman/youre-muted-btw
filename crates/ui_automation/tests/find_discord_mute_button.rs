@@ -1,12 +1,11 @@
 use uiautomation::UIAutomation;
-use ymb_ui_automation::DiscordMuteButton;
+use ymb_ui_automation::{DiscordMuteButton, MuteButtonState};
 
 #[test]
-fn it_works() -> Result<(), uiautomation::Error> {
+fn it_works() -> eyre::Result<()> {
     let automation = UIAutomation::new()?;
-    let matcher = DiscordMuteButton::get_matcher(&automation);
-    dbg!(&matcher);
-    let elem = matcher.find_first()?;
-    println!("Located Discord mute button: {elem:#?}");
+    let elem = DiscordMuteButton::try_find(&automation)?;
+    let mute_state = MuteButtonState::try_from(&elem)?;
+    println!("Located Discord mute button: {elem:#?} {mute_state:?}");
     Ok(())
 }

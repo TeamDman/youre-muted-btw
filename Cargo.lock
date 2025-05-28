@@ -6640,6 +6640,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "chrono",
+ "uiautomation",
  "ymb_host_cursor_position_plugin",
  "ymb_ui_automation",
  "ymb_worker_plugin",
