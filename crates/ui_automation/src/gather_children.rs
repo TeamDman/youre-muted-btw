@@ -5,6 +5,7 @@ use crate::RootEndEncountered;
 use crate::StopBehaviour;
 use crate::TaskbarEndEncountered;
 use std::collections::VecDeque;
+use bevy::log::error;
 use uiautomation::UIElement;
 use uiautomation::UITreeWalker;
 
@@ -43,7 +44,7 @@ pub fn gather_children(
             let last = match last {
                 Ok(last) => last,
                 Err(_) => {
-                    eprintln!("Failed to get last child of {:?}", parent);
+                    error!("Failed to get last child of {:?}", parent);
                     return children;
                 }
             };
@@ -51,7 +52,7 @@ pub fn gather_children(
             let runtime_id_of_last = match runtime_id_of_last {
                 Ok(runtime_id_of_last) => runtime_id_of_last,
                 Err(_) => {
-                    eprintln!(
+                    error!(
                         "Failed to get runtime id of last child {:?} of {:?}",
                         last, parent
                     );

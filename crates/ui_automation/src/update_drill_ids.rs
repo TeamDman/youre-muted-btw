@@ -30,7 +30,7 @@ impl HasDrillId for ElementInfo {
 }
 
 /// This fn assumes that no children have been omitted
-pub fn update_drill_ids_v2<T: HasChildren + HasDrillId>(root: &mut T) -> eyre::Result<()> {
+pub fn update_drill_ids<T: HasChildren + HasDrillId>(root: &mut T) -> eyre::Result<()> {
     let mut to_process = Vec::new();
     match root.drill_id() {
         DrillId::Unknown => bail!("Cannot update drill IDs on an unknown drill ID"),
@@ -58,7 +58,7 @@ pub fn update_drill_ids_v2<T: HasChildren + HasDrillId>(root: &mut T) -> eyre::R
 mod test {
     use crate::DrillId;
     use crate::ElementInfo;
-    use crate::update_drill_ids_v2;
+    use crate::update_drill_ids;
 
     #[test]
     fn simple_parent_child() -> eyre::Result<()> {
@@ -68,7 +68,7 @@ mod test {
         let child2 = ElementInfo::default();
         let child3 = ElementInfo::default();
         root.children = Some([child1, child2, child3].into());
-        update_drill_ids_v2(&mut root)?;
+        update_drill_ids(&mut root)?;
         assert_eq!(root.drill_id, DrillId::Root);
         assert_eq!(
             root.children.as_ref().unwrap()[0].drill_id,
@@ -93,7 +93,7 @@ mod test {
         let child2 = ElementInfo::default();
         let child3 = ElementInfo::default();
         root.children = Some([child1, child2, child3].into());
-        update_drill_ids_v2(&mut root)?;
+        update_drill_ids(&mut root)?;
         assert_eq!(root.drill_id, DrillId::Root);
         assert_eq!(
             root.children.as_ref().unwrap()[0].drill_id,

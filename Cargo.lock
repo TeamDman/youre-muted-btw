@@ -6591,6 +6591,7 @@ dependencies = [
  "ymb_assets",
  "ymb_host_cursor_position_plugin",
  "ymb_ui_automation",
+ "ymb_ui_automation_plugin",
  "ymb_windows_app_plugin",
  "ymb_worker_plugin",
 ]

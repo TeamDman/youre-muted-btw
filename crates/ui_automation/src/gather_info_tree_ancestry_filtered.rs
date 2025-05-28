@@ -8,8 +8,7 @@ use bevy::reflect::Reflect;
 use uiautomation::UIAutomation;
 use uiautomation::UIElement;
 
-#[derive(Debug, Clone, Reflect, Component)]
-#[reflect(from_reflect = false)]
+#[derive(Debug, Clone, Reflect)]
 pub struct AncestryTree {
     pub tree: ElementInfo,
     pub start: ElementInfo,

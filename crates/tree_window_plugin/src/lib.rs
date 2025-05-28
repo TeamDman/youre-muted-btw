@@ -4,9 +4,8 @@ use bevy::window::WindowResolution;
 use bevy_egui::EguiContext;
 use bevy_egui::EguiMultipassSchedule;
 use bevy_egui::egui;
-use ymb_ui_automation::AncestryTree;
 use ymb_ui_automation::ElementInfo;
-use ymb_ui_automation_plugin::LatestTree; // Added import
+use ymb_ui_automation_plugin::LatestInfo; // Added import
 
 pub struct TreeWindowPlugin;
 
@@ -39,16 +38,16 @@ fn spawn_window(mut commands: Commands) {
 
 fn ui_tree_window(
     mut window: Query<&mut EguiContext, With<UITreeWindow>>,
-    latest: Query<&AncestryTree, With<LatestTree>>,
+    latest: Query<&ElementInfo, With<LatestInfo>>,
 ) -> Result {
     let mut ctx = window.single_mut()?;
-    let Ok(AncestryTree { tree, start: _ }) = latest.single() else {
+    let Ok(tree) = latest.single() else {
         return Ok(());
     };
     egui::CentralPanel::default().show(ctx.get_mut(), |ui| {
         egui::ScrollArea::both().show(ui, |ui| {
-            // ui.label("ui tree"); // Removed old label
             render_element_info_node(ui, tree);
+            ui.allocate_space(ui.available_size());
         });
     });
     Ok(())

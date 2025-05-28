@@ -1,5 +1,5 @@
 use crate::control_type::YMBControlType;
-use crate::update_drill_ids_v2;
+use crate::update_drill_ids;
 use crate::DrillId;
 use crate::IntoBevyIRect;
 use crate::RuntimeId;
@@ -201,7 +201,7 @@ impl ElementInfo {
             .join("")
     }
     pub fn try_update_drill_ids(&mut self) -> eyre::Result<()> {
-        update_drill_ids_v2(self)?;
+        update_drill_ids(self)?;
         Ok(())
     }
 }
