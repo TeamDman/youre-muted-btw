@@ -25,3 +25,4 @@ windows = { workspace = true, features = [
     "Win32_Media_Multimedia"
 ] }
 serde.workspace = true
+ymb_windy.workspace=true

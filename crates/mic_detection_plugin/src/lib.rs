@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::reflect::Reflect;
 use serde::Deserialize;
 use serde::Serialize;
+use ymb_windy::WindyResult;
 use ymb_worker_plugin::Sender;
 use ymb_worker_plugin::WorkerConfig;
 use ymb_worker_plugin::WorkerPlugin;
@@ -101,8 +102,7 @@ fn handle_mics_enumerated(
     }
 }
 
-#[cfg(target_os = "windows")]
-fn enumerate_mics_win() -> Result<Vec<MicInfo>, bevy::prelude::BevyError> {
+fn enumerate_mics_win() -> WindyResult<Vec<MicInfo>> {
     use windows::Win32::Devices::Properties;
     use windows::Win32::Media::Audio::eCapture;
     use windows::Win32::Media::Audio::ERole;
@@ -118,46 +118,25 @@ fn enumerate_mics_win() -> Result<Vec<MicInfo>, bevy::prelude::BevyError> {
     use windows::Win32::System::Com::STGM_READ;
     use windows::Win32::UI::Shell::PropertiesSystem::IPropertyStore;
     unsafe {
-        let hr = CoInitializeEx(None, COINIT_MULTITHREADED);
-        if hr.is_err() {
-            return Err(bevy::prelude::BevyError::from("CoInitializeEx failed"));
-        }
+        CoInitializeEx(None, COINIT_MULTITHREADED).ok()?;
         let enumerator: IMMDeviceEnumerator =
-            CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL).map_err(|e| {
-                bevy::prelude::BevyError::from(format!("CoCreateInstance failed: {e}"))
-            })?;
-        let default_device = enumerator
-            .GetDefaultAudioEndpoint(eCapture, ERole(1))
-            .map_err(|e| {
-                bevy::prelude::BevyError::from(format!("GetDefaultAudioEndpoint failed: {e}"))
-            })?;
-        let default_id = default_device
-            .GetId()
-            .map_err(|e| bevy::prelude::BevyError::from(format!("GetId failed: {e}")))?;
-        let collection: IMMDeviceCollection = enumerator
-            .EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE)
-            .map_err(|e| {
-                bevy::prelude::BevyError::from(format!("EnumAudioEndpoints failed: {e}"))
-            })?;
-        let count = collection
-            .GetCount()
-            .map_err(|e| bevy::prelude::BevyError::from(format!("GetCount failed: {e}")))?;
+            CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
+        let default_device = enumerator.GetDefaultAudioEndpoint(eCapture, ERole(1))?;
+        let default_id = default_device.GetId()?;
+        let collection: IMMDeviceCollection =
+            enumerator.EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE)?;
+        let count = collection.GetCount()?;
         let mut mics = Vec::new();
         for i in 0..count {
-            let device: IMMDevice = collection
-                .Item(i)
-                .map_err(|e| bevy::prelude::BevyError::from(format!("Item failed: {e}")))?;
-            let id = device
-                .GetId()
-                .map_err(|e| bevy::prelude::BevyError::from(format!("GetId failed: {e}")))?;
+            let device: IMMDevice = collection.Item(i)?;
+            let id = device.GetId()?;
             let is_default = id == default_id;
-            let props: IPropertyStore = device.OpenPropertyStore(STGM_READ).map_err(|e| {
-                bevy::prelude::BevyError::from(format!("OpenPropertyStore failed: {e}"))
-            })?;
+            let props: IPropertyStore = device.OpenPropertyStore(STGM_READ)?;
             // Use the correct type for the property key: DEVPROPKEY is compatible with PROPERTYKEY (same layout)
-            let key = &Properties::DEVPKEY_Device_FriendlyName as *const _
-                as *const windows::Win32::Foundation::PROPERTYKEY;
-            let get_value_result = props.GetValue(key);
+            let get_value_result = props.GetValue(
+                &Properties::DEVPKEY_Device_FriendlyName as *const _
+                    as *const windows::Win32::Foundation::PROPERTYKEY,
+            );
             let name = if let Ok(propvar) = get_value_result {
                 // propvar.Anonymous.Anonymous.pwszVal is a PWSTR, use .0 to get *const u16
                 let pwstr = propvar.Anonymous.Anonymous.Anonymous.pwszVal.0;
@@ -174,11 +153,6 @@ fn enumerate_mics_win() -> Result<Vec<MicInfo>, bevy::prelude::BevyError> {
         }
         Ok(mics)
     }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn enumerate_mics_win() -> Result<Vec<MicInfo>, bevy::prelude::BevyError> {
-    Ok(vec![])
 }
 
 unsafe fn wcslen(mut ptr: *const u16) -> usize {
