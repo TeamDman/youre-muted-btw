@@ -25,7 +25,6 @@ impl Plugin for YMBWorldInspectorPlugin {
         check_plugins(app, "WorldInspectorPlugin");
         app.add_event::<WorldInspectorWindowEvent>();
         app.add_plugins(DefaultInspectorConfigPlugin);
-        app.add_systems(Startup, fire_spawn_window_event);
         app.add_systems(WorldInspectorWindowEguiContextPass, ui);
         app.add_systems(Update, handle_ipc_toggle_window_event);
         app.add_systems(Update, handle_spawn_window_event);
@@ -34,9 +33,6 @@ impl Plugin for YMBWorldInspectorPlugin {
     }
 }
 
-fn fire_spawn_window_event(mut events: EventWriter<WorldInspectorWindowEvent>) {
-    events.write(WorldInspectorWindowEvent::SpawnWindow);
-}
 
 fn handle_ipc_toggle_window_event(
     mut messages: EventReader<IpcWorkerGameboundMessage>,
