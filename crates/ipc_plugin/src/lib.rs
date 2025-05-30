@@ -47,6 +47,7 @@ pub enum IpcWorkerThreadboundMessage {
 #[derive(Debug, Clone, Reflect, Event, Serialize, Deserialize)]
 pub enum BevyboundIPCMessage {
     TrayIconClicked,
+    ShowWorldInspector,
     DebugMessageReceived(String),
 }
 
@@ -96,6 +97,9 @@ fn handle_threadbound_message(
                                     Ok(BevyboundIPCMessage::DebugMessageReceived(text)) => {
                                         reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::DebugMessageReceived(text)))?;
                                     }
+                                    Ok(BevyboundIPCMessage::ShowWorldInspector) => {
+                                        reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::ShowWorldInspector))?;
+                                    }
                                     Err(e) => {
                                         error!("IpcWorker: Failed to deserialize IPC message: {}", e);
                                     }
@@ -138,6 +142,10 @@ fn handle_gamebound_messages(
             IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::TrayIconClicked) => {
                 info!("Received ToggleWindowVisibility IPC message (no-op in ipc_plugin)");
                 // This plugin should not handle window logic directly.
+            }
+            IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::ShowWorldInspector) => {
+                info!("Received ShowWorldInspector IPC message (no-op in ipc_plugin)");
+                // This plugin does not handle world inspection logic.
             }
         }
     }

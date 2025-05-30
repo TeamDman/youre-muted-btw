@@ -31,7 +31,7 @@ const ID_SHOW_LOGS: u32 = 3;
 const ID_HIDE_LOGS: u32 = 5;
 const ID_QUIT: u32 = 4;
 const ID_DEBUG_MSG: u32 = 7;
-const ID_TOGGLE_WINDOW: u32 = 8;
+const ID_WORLD_INSPECTOR: u32 = 9;
 
 struct TrayWindow {
     hwnd: HWND,
@@ -50,7 +50,7 @@ impl TrayWindow {
                         let show_logs_text = w!("Show logs");
                         let hide_logs_text = w!("Hide logs");
                         let debug_msg_text = w!("Debug Msg");
-                        let toggle_window_text = w!("Toggle Window");
+                        let world_inspector_text = w!("World inspector");
                         let quit_text = w!("Quit");
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
@@ -59,13 +59,7 @@ impl TrayWindow {
                             AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
                                 .unwrap();
                         }
-                        AppendMenuW(
-                            hmenu,
-                            MF_STRING,
-                            ID_TOGGLE_WINDOW as usize,
-                            toggle_window_text,
-                        )
-                        .unwrap();
+                        AppendMenuW(hmenu, MF_STRING, ID_WORLD_INSPECTOR as usize, world_inspector_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_DEBUG_MSG as usize, debug_msg_text)
                             .unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
@@ -91,31 +85,7 @@ impl TrayWindow {
                     let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
                     match pipe_name {
                         Some(pipe_name) => {
-                            let message_to_send = bincode::serialize(&BevyboundIPCMessage::TrayIconClicked).expect("serialize");
-                            std::thread::spawn(move || {
-                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
-                                    &*pipe_name,
-                                ) {
-                                    Ok(mut stream) => {
-                                        info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(&message_to_send)
-                                        {
-                                            error!(
-                                                "Tray (IPC Thread): Failed to send toggle message: {}",
-                                                e
-                                            );
-                                        } else {
-                                            info!("Tray (IPC Thread): Sent toggle message");
-                                        }
-                                    }
-                                    Err(e) => {
-                                        error!(
-                                            "Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?",
-                                            e
-                                        );
-                                    }
-                                }
-                            });
+                            send_ipc_message(pipe_name, BevyboundIPCMessage::TrayIconClicked);
                         }
                         None => {
                             warn!("Tray: IPC pipe name not set. Is GUI running?");
@@ -127,44 +97,6 @@ impl TrayWindow {
                 }
             }
             WM_COMMAND => match wparam.0 as u32 {
-                ID_TOGGLE_WINDOW => {
-                    // Send ToggleWindowVisibility message to Bevy app
-                    info!("Toggle Window menu item clicked");
-                    let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
-                    match pipe_name {
-                        Some(pipe_name) => {
-                            let message_to_send = bincode::serialize(&BevyboundIPCMessage::TrayIconClicked).expect("serialize");
-                            std::thread::spawn(move || {
-                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
-                                    &*pipe_name,
-                                ) {
-                                    Ok(mut stream) => {
-                                        info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(&message_to_send)
-                                        {
-                                            error!(
-                                                "Tray (IPC Thread): Failed to send toggle message: {}",
-                                                e
-                                            );
-                                        } else {
-                                            info!("Tray (IPC Thread): Sent toggle message");
-                                        }
-                                    }
-                                    Err(e) => {
-                                        error!(
-                                            "Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?",
-                                            e
-                                        );
-                                    }
-                                }
-                            });
-                        }
-                        None => {
-                            warn!("Tray: IPC pipe name not set. Is GUI running?");
-                        }
-                    }
-                    true
-                }
                 ID_HELLO => {
                     unsafe {
                         MessageBoxW(Some(self.hwnd), w!("Hello from tray!"), w!("Hello"), MB_OK);
@@ -188,35 +120,7 @@ impl TrayWindow {
                     let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
                     match pipe_name {
                         Some(pipe_name) => {
-                            info!(
-                                "Tray: Attempting to send debug message to IPC pipe: {}",
-                                pipe_name
-                            );
-                            let message_to_send = bincode::serialize(&BevyboundIPCMessage::DebugMessageReceived(format!("Debug message from tray at {}!", chrono::Local::now().format("%H:%M:%S")))).expect("serialize");
-                            std::thread::spawn(move || {
-                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
-                                    &*pipe_name,
-                                ) {
-                                    Ok(mut stream) => {
-                                        info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(&message_to_send)
-                                        {
-                                            error!(
-                                                "Tray (IPC Thread): Failed to send debug message: {}",
-                                                e
-                                            );
-                                        } else {
-                                            info!("Tray (IPC Thread): Sent debug message");
-                                        }
-                                    }
-                                    Err(e) => {
-                                        error!(
-                                            "Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?",
-                                            e
-                                        );
-                                    }
-                                }
-                            });
+                            send_ipc_message(pipe_name, BevyboundIPCMessage::DebugMessageReceived(format!("Debug message from tray at {}!", chrono::Local::now().format("%H:%M:%S"))));
                             true
                         }
                         None => {
@@ -234,6 +138,18 @@ impl TrayWindow {
                             true
                         }
                     }
+                }
+                ID_WORLD_INSPECTOR => {
+                    let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
+                    match pipe_name {
+                        Some(pipe_name) => {
+                            send_ipc_message(pipe_name, BevyboundIPCMessage::ShowWorldInspector);
+                        }
+                        None => {
+                            warn!("Tray: IPC pipe name not set. Is GUI running?");
+                        }
+                    }
+                    true
                 }
                 ID_QUIT => {
                     unsafe {
@@ -270,6 +186,25 @@ impl TrayWindow {
             _ => false,
         }
     }
+}
+
+fn send_ipc_message(pipe_name: String, message: BevyboundIPCMessage) {
+    let message_to_send = bincode::serialize(&message).expect("serialize");
+    std::thread::spawn(move || {
+        match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(pipe_name) {
+            Ok(mut stream) => {
+                info!("Tray (IPC Thread): Connected to IPC pipe.");
+                if let Err(e) = stream.write_all(&message_to_send) {
+                    error!("Tray (IPC Thread): Failed to send IPC message: {}", e);
+                } else {
+                    info!("Tray (IPC Thread): Sent IPC message");
+                }
+            }
+            Err(e) => {
+                error!("Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?", e);
+            }
+        }
+    });
 }
 
 unsafe extern "system" fn window_proc(
