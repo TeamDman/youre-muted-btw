@@ -44,8 +44,14 @@ pub enum IpcWorkerThreadboundMessage {
 }
 
 #[derive(Debug, Clone, Reflect, Event)]
-pub enum IpcWorkerGameboundMessage {
+pub enum BevyboundIPCMessage {
+    ToggleWindowVisibility,
     DebugMessageReceived(String),
+}
+
+#[derive(Debug, Clone, Reflect, Event)]
+pub enum IpcWorkerGameboundMessage {
+    MessageReceived(BevyboundIPCMessage),
 }
 
 #[derive(Default)]
@@ -65,9 +71,7 @@ fn handle_threadbound_message(
                 warn!("IpcWorker: Listener already initialized. Ignoring InitAndListen message.");
                 return Ok(());
             }
-            // Read the pipe name from the environment variable
-            let pipe_name =
-                std::env::var("YMB_IPC_PIPE_NAME").map_err(bevy::prelude::BevyError::from)?;
+            let pipe_name = std::env::var("YMB_IPC_PIPE_NAME").map_err(bevy::prelude::BevyError::from)?;
             info!("IpcWorker: Initializing listener for pipe: {}", pipe_name);
             let listener = PipeListenerOptions::new()
                 .path(pipe_name.clone())
@@ -83,10 +87,13 @@ fn handle_threadbound_message(
                         let mut buffer = String::new();
                         match stream.read_to_string(&mut buffer) {
                             Ok(_) => {
-                                info!("IpcWorker: Received message: '{}'", buffer.trim());
-                                reply_tx.send(IpcWorkerGameboundMessage::DebugMessageReceived(
-                                    buffer.trim().to_string(),
-                                ))?;
+                                let msg = buffer.trim();
+                                info!("IpcWorker: Received message: '{}'", msg);
+                                if msg == "ToggleWindowVisibility" {
+                                    reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::ToggleWindowVisibility))?;
+                                } else {
+                                    reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::DebugMessageReceived(msg.to_string())))?;
+                                }
                             }
                             Err(e) => {
                                 error!("IpcWorker: Failed to read from stream: {}", e);
@@ -114,14 +121,17 @@ fn setup_ipc_and_worker(mut ipc_worker_events: EventWriter<IpcWorkerThreadboundM
     ipc_worker_events.write(IpcWorkerThreadboundMessage::InitAndListen);
 }
 
-fn handle_gamebound_messages(mut messages: EventReader<IpcWorkerGameboundMessage>) {
+fn handle_gamebound_messages(
+    mut messages: EventReader<IpcWorkerGameboundMessage>,
+) {
     for msg in messages.read() {
         match msg {
-            IpcWorkerGameboundMessage::DebugMessageReceived(text) => {
-                debug!(
-                    "Bevy App (Main Thread): Received IPC Debug Message: '{}'",
-                    text
-                );
+            IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::DebugMessageReceived(text)) => {
+                debug!("Bevy App (Main Thread): Received IPC Debug Message: '{}'", text);
+            }
+            IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::ToggleWindowVisibility) => {
+                info!("Received ToggleWindowVisibility IPC message (no-op in ipc_plugin)");
+                // This plugin should not handle window logic directly.
             }
         }
     }

@@ -29,14 +29,13 @@ const ID_HELLO: u32 = 2;
 const ID_SHOW_LOGS: u32 = 3;
 const ID_HIDE_LOGS: u32 = 5;
 const ID_QUIT: u32 = 4;
-const ID_OPEN: u32 = 6;
 const ID_DEBUG_MSG: u32 = 7;
+const ID_TOGGLE_WINDOW: u32 = 8;
 
 struct TrayWindow {
     hwnd: HWND,
     nid: NOTIFYICONDATAW,
     log_buffer: LogBuffer,
-    global_args: GlobalArgs,
 }
 
 impl TrayWindow {
@@ -46,22 +45,19 @@ impl TrayWindow {
                 if lparam.0 as u32 == WM_RBUTTONUP {
                     unsafe {
                         let hmenu = CreatePopupMenu().unwrap();
-                        let open_text = w!("Open");
                         let hello_text = w!("Hello!");
                         let show_logs_text = w!("Show logs");
                         let hide_logs_text = w!("Hide logs");
                         let debug_msg_text = w!("Debug Msg");
+                        let toggle_window_text = w!("Toggle Window");
                         let quit_text = w!("Quit");
-                        AppendMenuW(hmenu, MF_STRING, ID_OPEN as usize, open_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
-                        AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
-                            .unwrap();
+                        AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text).unwrap();
                         if SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.load(Ordering::SeqCst) {
-                            AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
-                                .unwrap();
+                            AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text).unwrap();
                         }
-                        AppendMenuW(hmenu, MF_STRING, ID_DEBUG_MSG as usize, debug_msg_text)
-                            .unwrap();
+                        AppendMenuW(hmenu, MF_STRING, ID_TOGGLE_WINDOW as usize, toggle_window_text).unwrap();
+                        AppendMenuW(hmenu, MF_STRING, ID_DEBUG_MSG as usize, debug_msg_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
                         let mut pt = POINT { x: 0, y: 0 };
                         GetCursorPos(&mut pt).unwrap();
@@ -74,23 +70,70 @@ impl TrayWindow {
                             Default::default(),
                             self.hwnd,
                             None,
-                        )
-                        .unwrap();
+                        ).unwrap();
                         DestroyMenu(hmenu).unwrap();
                     }
                     true
                 } else if lparam.0 as u32 == WM_LBUTTONUP {
-                    info!("Hello from tray icon click!");
-                    ymb_welcome_gui::spawn(self.global_args.clone()).unwrap();
-
+                    // Send ToggleWindowVisibility message to Bevy app
+                    info!("Tray icon left-clicked: sending ToggleWindowVisibility");
+                    let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
+                    match pipe_name {
+                        Some(pipe_name) => {
+                            let message_to_send = "ToggleWindowVisibility\n".to_string();
+                            std::thread::spawn(move || {
+                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(&*pipe_name) {
+                                    Ok(mut stream) => {
+                                        info!("Tray (IPC Thread): Connected to IPC pipe.");
+                                        if let Err(e) = stream.write_all(message_to_send.as_bytes()) {
+                                            error!("Tray (IPC Thread): Failed to send toggle message: {}", e);
+                                        } else {
+                                            info!("Tray (IPC Thread): Sent toggle message");
+                                        }
+                                    },
+                                    Err(e) => {
+                                        error!("Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?", e);
+                                    }
+                                }
+                            });
+                        },
+                        None => {
+                            warn!("Tray: IPC pipe name not set. Is GUI running?");
+                        }
+                    }
                     true
                 } else {
                     false
                 }
             }
             WM_COMMAND => match wparam.0 as u32 {
-                ID_OPEN => {
-                    info!("Open menu item clicked");
+                ID_TOGGLE_WINDOW => {
+                    // Send ToggleWindowVisibility message to Bevy app
+                    info!("Toggle Window menu item clicked");
+                    let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
+                    match pipe_name {
+                        Some(pipe_name) => {
+                            let message_to_send = "ToggleWindowVisibility\n".to_string();
+                            std::thread::spawn(move || {
+                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(&*pipe_name) {
+                                    Ok(mut stream) => {
+                                        info!("Tray (IPC Thread): Connected to IPC pipe.");
+                                        if let Err(e) = stream.write_all(message_to_send.as_bytes()) {
+                                            error!("Tray (IPC Thread): Failed to send toggle message: {}", e);
+                                        } else {
+                                            info!("Tray (IPC Thread): Sent toggle message");
+                                        }
+                                    },
+                                    Err(e) => {
+                                        error!("Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?", e);
+                                    }
+                                }
+                            });
+                        },
+                        None => {
+                            warn!("Tray: IPC pipe name not set. Is GUI running?");
+                        }
+                    }
                     true
                 }
                 ID_HELLO => {
@@ -217,7 +260,6 @@ unsafe extern "system" fn window_proc(
             hwnd,
             nid: Default::default(),
             log_buffer: Default::default(),
-            global_args: GLOBAL_ARGS.get().unwrap().clone(),
         });
         unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _) };
         return LRESULT(0);
@@ -318,9 +360,11 @@ pub fn main(global_args: GlobalArgs, log_buffer: LogBuffer) -> WindyResult<()> {
             hwnd,
             nid,
             log_buffer,
-            global_args,
         });
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
+
+        // Spawn Bevy app
+        ymb_welcome_gui::spawn(global_args)?;
 
         // Message loop
         let mut msg = MSG::default();

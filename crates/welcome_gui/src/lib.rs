@@ -17,7 +17,7 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: None,
-                    close_when_requested: false, // see below
+                    exit_condition: bevy::window::ExitCondition::DontExit, // we want to control the exit behavior ourselves
                     ..default()
                 })
                 .disable::<LogPlugin>(),
@@ -33,26 +33,3 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
         .run();
     Ok(())
 }
-
-/*
-
-We have disabled the default exit behavior of the `WindowPlugin` because we want to have the app continue running when no windows are open.
-
-
-
-/// Exit the application when the primary window has been closed
-///
-/// This system is added by the [`WindowPlugin`]
-///
-/// [`WindowPlugin`]: crate::WindowPlugin
-pub fn exit_on_primary_closed(
-    mut app_exit_events: EventWriter<AppExit>,
-    windows: Query<(), (With<Window>, With<PrimaryWindow>)>,
-) {
-    if windows.is_empty() {
-        log::info!("Primary window was closed, exiting");
-        app_exit_events.write(AppExit::Success);
-    }
-}
-
-*/
