@@ -140,6 +140,7 @@ fn handle_gamebound_messages(
                     *toggle_state = state.clone();
                     info!("Updated toggle state: {:?}", toggle_state);
                 } else {
+                    info!("Spawning new DiscordMuteButton with state: {:?}", state);
                     commands.spawn((
                         DiscordMuteButton,
                         state.clone(),
