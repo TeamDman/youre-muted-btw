@@ -2929,16 +2929,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
-name = "holda"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18b58cb1388f69d0a9b9b8efcff34b8105af7c992d0ea172fab5f2a3fc93a768"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
 name = "home"
 version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6501,17 +6491,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e01738255b5a16e78bbb83e7fbba0a1e7dd506905cfc53f4622d89015a03fbb5"
 
 [[package]]
-name = "ymb_app_under_cursor_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "windows 0.61.1",
- "ymb_host_cursor_position_plugin",
- "ymb_windows_app_plugin",
- "ymb_windy",
-]
-
-[[package]]
 name = "ymb_args"
 version = "0.1.0"
 dependencies = [
@@ -6553,16 +6532,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ymb_host_cursor_position_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "holda",
- "windows 0.61.1",
- "ymb_windy",
-]
-
-[[package]]
 name = "ymb_lifecycle"
 version = "0.1.0"
 dependencies = [
@@ -6582,21 +6551,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ymb_targeting_circle"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "eyre",
- "ymb_app_under_cursor_plugin",
- "ymb_assets",
- "ymb_host_cursor_position_plugin",
- "ymb_ui_automation",
- "ymb_ui_automation_plugin",
- "ymb_windows_app_plugin",
- "ymb_worker_plugin",
-]
-
-[[package]]
 name = "ymb_tray"
 version = "0.1.0"
 dependencies = [
@@ -6608,17 +6562,6 @@ dependencies = [
  "ymb_logs",
  "ymb_welcome_gui",
  "ymb_windy",
-]
-
-[[package]]
-name = "ymb_tree_window_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy-inspector-egui",
- "bevy_egui",
- "ymb_ui_automation",
- "ymb_ui_automation_plugin",
 ]
 
 [[package]]
@@ -6641,7 +6584,6 @@ dependencies = [
  "bevy-inspector-egui",
  "chrono",
  "uiautomation",
- "ymb_host_cursor_position_plugin",
  "ymb_ui_automation",
  "ymb_worker_plugin",
 ]
@@ -6653,15 +6595,11 @@ dependencies = [
  "bevy",
  "eyre",
  "windows 0.61.1",
- "ymb_app_under_cursor_plugin",
  "ymb_args",
  "ymb_assets",
  "ymb_egui_plugin",
  "ymb_exit_on_esc_plugin",
- "ymb_host_cursor_position_plugin",
  "ymb_logs",
- "ymb_targeting_circle",
- "ymb_tree_window_plugin",
  "ymb_ui_automation_plugin",
  "ymb_windows_app_plugin",
  "ymb_world_inspector_plugin",
