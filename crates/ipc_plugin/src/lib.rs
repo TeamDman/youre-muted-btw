@@ -11,6 +11,7 @@ use tracing::warn;
 use ymb_worker_plugin::Sender;
 use ymb_worker_plugin::WorkerConfig;
 use ymb_worker_plugin::WorkerPlugin;
+use serde::{Deserialize, Serialize};
 
 pub struct IpcPlugin;
 
@@ -43,9 +44,9 @@ pub enum IpcWorkerThreadboundMessage {
     InitAndListen,
 }
 
-#[derive(Debug, Clone, Reflect, Event)]
+#[derive(Debug, Clone, Reflect, Event, Serialize, Deserialize)]
 pub enum BevyboundIPCMessage {
-    ToggleWindowVisibility,
+    TrayIconClicked,
     DebugMessageReceived(String),
 }
 
@@ -84,15 +85,20 @@ fn handle_threadbound_message(
                 match incoming_conn {
                     Ok(mut stream) => {
                         debug!("IpcWorker: Accepted new connection.");
-                        let mut buffer = String::new();
-                        match stream.read_to_string(&mut buffer) {
+                        let mut buffer = Vec::new();
+                        match stream.read_to_end(&mut buffer) {
                             Ok(_) => {
-                                let msg = buffer.trim();
-                                info!("IpcWorker: Received message: '{}'", msg);
-                                if msg == "ToggleWindowVisibility" {
-                                    reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::ToggleWindowVisibility))?;
-                                } else {
-                                    reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::DebugMessageReceived(msg.to_string())))?;
+                                let msg: Result<BevyboundIPCMessage, _> = bincode::deserialize(&buffer);
+                                match msg {
+                                    Ok(BevyboundIPCMessage::TrayIconClicked) => {
+                                        reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::TrayIconClicked))?;
+                                    }
+                                    Ok(BevyboundIPCMessage::DebugMessageReceived(text)) => {
+                                        reply_tx.send(IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::DebugMessageReceived(text)))?;
+                                    }
+                                    Err(e) => {
+                                        error!("IpcWorker: Failed to deserialize IPC message: {}", e);
+                                    }
                                 }
                             }
                             Err(e) => {
@@ -129,7 +135,7 @@ fn handle_gamebound_messages(
             IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::DebugMessageReceived(text)) => {
                 debug!("Bevy App (Main Thread): Received IPC Debug Message: '{}'", text);
             }
-            IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::ToggleWindowVisibility) => {
+            IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::TrayIconClicked) => {
                 info!("Received ToggleWindowVisibility IPC message (no-op in ipc_plugin)");
                 // This plugin should not handle window logic directly.
             }

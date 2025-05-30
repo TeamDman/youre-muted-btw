@@ -43,7 +43,7 @@ fn handle_ipc_toggle_window_event(
     mut events: EventWriter<WorldInspectorWindowEvent>,
 ) {
     for msg in messages.read() {
-        if let IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::ToggleWindowVisibility) = msg {
+        if let IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::TrayIconClicked) = msg {
             events.write(WorldInspectorWindowEvent::ToggleWindow);
         }
     }

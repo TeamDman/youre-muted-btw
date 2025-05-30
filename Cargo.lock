@@ -1560,6 +1560,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bindgen"
 version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6568,8 +6577,10 @@ name = "ymb_ipc_plugin"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bincode",
  "eyre",
  "interprocess",
+ "serde",
  "tracing",
  "uuid",
  "ymb_worker_plugin",
@@ -6608,12 +6619,15 @@ dependencies = [
 name = "ymb_tray"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "chrono",
  "interprocess",
+ "serde",
  "tracing",
  "windows 0.61.1",
  "ymb_args",
  "ymb_console",
+ "ymb_ipc_plugin",
  "ymb_lifecycle",
  "ymb_logs",
  "ymb_welcome_gui",

@@ -21,6 +21,8 @@ use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
 use ymb_windy::WindyResult;
+use bincode;
+use ymb_ipc_plugin::BevyboundIPCMessage;
 
 const WM_TRAYICON: u32 = WM_USER + 1;
 const ID_TRAYICON: u32 = 1;
@@ -89,14 +91,14 @@ impl TrayWindow {
                     let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
                     match pipe_name {
                         Some(pipe_name) => {
-                            let message_to_send = "ToggleWindowVisibility\n".to_string();
+                            let message_to_send = bincode::serialize(&BevyboundIPCMessage::TrayIconClicked).expect("serialize");
                             std::thread::spawn(move || {
                                 match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
                                     &*pipe_name,
                                 ) {
                                     Ok(mut stream) => {
                                         info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(message_to_send.as_bytes())
+                                        if let Err(e) = stream.write_all(&message_to_send)
                                         {
                                             error!(
                                                 "Tray (IPC Thread): Failed to send toggle message: {}",
@@ -131,14 +133,14 @@ impl TrayWindow {
                     let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
                     match pipe_name {
                         Some(pipe_name) => {
-                            let message_to_send = "ToggleWindowVisibility\n".to_string();
+                            let message_to_send = bincode::serialize(&BevyboundIPCMessage::TrayIconClicked).expect("serialize");
                             std::thread::spawn(move || {
                                 match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
                                     &*pipe_name,
                                 ) {
                                     Ok(mut stream) => {
                                         info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(message_to_send.as_bytes())
+                                        if let Err(e) = stream.write_all(&message_to_send)
                                         {
                                             error!(
                                                 "Tray (IPC Thread): Failed to send toggle message: {}",
@@ -190,27 +192,21 @@ impl TrayWindow {
                                 "Tray: Attempting to send debug message to IPC pipe: {}",
                                 pipe_name
                             );
-                            let message_to_send = format!(
-                                "Debug message from tray at {}!\n",
-                                chrono::Local::now().format("%H:%M:%S")
-                            );
+                            let message_to_send = bincode::serialize(&BevyboundIPCMessage::DebugMessageReceived(format!("Debug message from tray at {}!", chrono::Local::now().format("%H:%M:%S")))).expect("serialize");
                             std::thread::spawn(move || {
                                 match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
                                     &*pipe_name,
                                 ) {
                                     Ok(mut stream) => {
                                         info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(message_to_send.as_bytes())
+                                        if let Err(e) = stream.write_all(&message_to_send)
                                         {
                                             error!(
                                                 "Tray (IPC Thread): Failed to send debug message: {}",
                                                 e
                                             );
                                         } else {
-                                            info!(
-                                                "Tray (IPC Thread): Sent debug message: '{}'",
-                                                message_to_send.trim()
-                                            );
+                                            info!("Tray (IPC Thread): Sent debug message");
                                         }
                                     }
                                     Err(e) => {

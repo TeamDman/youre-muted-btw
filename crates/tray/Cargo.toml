@@ -17,3 +17,6 @@ ymb_lifecycle.workspace=true
 ymb_args.workspace=true
 interprocess.workspace = true
 chrono.workspace = true
+bincode = "1.3"
+serde.workspace = true
+ymb_ipc_plugin.workspace = true

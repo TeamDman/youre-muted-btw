@@ -39,7 +39,7 @@ fn handle_ipc_toggle_window_event(
 ) {
     for msg in messages.read() {
         if let IpcWorkerGameboundMessage::MessageReceived(
-            BevyboundIPCMessage::ToggleWindowVisibility,
+            BevyboundIPCMessage::TrayIconClicked,
         ) = msg
         {
             events.write(MuteStatusWindowEvent::ToggleWindow);
