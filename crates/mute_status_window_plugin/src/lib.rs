@@ -124,6 +124,17 @@ fn handle_toggle_window_event(
 }
 
 fn ui(world: &mut World) -> Result {
+    // Query for the window entity and get its size
+    let (window_height, window_width) = {
+        let mut window_query = world.query_filtered::<&Window, With<MuteStatusWindow>>();
+        if let Some(window) = window_query.iter(world).next() {
+            (window.resolution.height(), window.resolution.width())
+        } else {
+            (DEFAULT_SIZE.1, DEFAULT_SIZE.0)
+        }
+    };
+    // Set font size proportional to window height (e.g., 40% of height)
+    let font_size = window_height * 0.4;
     let mut ctx = world
         .query_filtered::<&mut EguiContext, With<MuteStatusWindow>>()
         .single_mut(world)?
@@ -139,7 +150,12 @@ fn ui(world: &mut World) -> Result {
             MuteButtonState::Muted => ("You are muted btw.", egui::Color32::RED),
             _ => ("You are not muted.", egui::Color32::GREEN),
         };
-        ui.colored_label(color, text);
+        let style = ui.style_mut();
+        style.text_styles.insert(
+            egui::TextStyle::Heading,
+            egui::FontId::new(font_size, egui::FontFamily::Proportional),
+        );
+        ui.colored_label(color, egui::RichText::new(text).heading());
     });
     Ok(())
 }
