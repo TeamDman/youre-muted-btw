@@ -9,6 +9,7 @@ use ymb_ipc_plugin::IpcPlugin;
 use ymb_ui_automation_plugin::UIAutomationPlugin;
 use ymb_windows_app_plugin::WindowsAppPlugin;
 use ymb_world_inspector_plugin::YMBWorldInspectorPlugin;
+use ymb_mute_status_window_plugin::YMBMuteStatusWindowPlugin;
 
 pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
     App::new()
@@ -29,6 +30,7 @@ pub fn run(_global_args: &GlobalArgs) -> eyre::Result<()> {
         .add_plugins(YMBEguiPlugin)
         .add_plugins(UIAutomationPlugin)
         .add_plugins(YMBWorldInspectorPlugin)
+        .add_plugins(YMBMuteStatusWindowPlugin)
         .add_plugins(IpcPlugin)
         .run();
     Ok(())

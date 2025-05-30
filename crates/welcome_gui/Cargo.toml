@@ -20,3 +20,4 @@ ymb_egui_plugin.workspace = true
 ymb_ui_automation_plugin.workspace = true
 ymb_ipc_plugin.workspace = true
 uuid.workspace = true
+ymb_mute_status_window_plugin.workspace = true

@@ -6595,6 +6595,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ymb_mute_status_window_plugin"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "ymb_ipc_plugin",
+ "ymb_ui_automation",
+]
+
+[[package]]
 name = "ymb_tray"
 version = "0.1.0"
 dependencies = [
@@ -6648,6 +6658,7 @@ dependencies = [
  "ymb_exit_on_esc_plugin",
  "ymb_ipc_plugin",
  "ymb_logs",
+ "ymb_mute_status_window_plugin",
  "ymb_ui_automation_plugin",
  "ymb_windows_app_plugin",
  "ymb_world_inspector_plugin",

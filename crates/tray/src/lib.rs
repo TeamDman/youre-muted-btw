@@ -17,7 +17,6 @@ use ymb_args::GlobalArgs;
 use ymb_console::ctrl_handler;
 use ymb_console::hide_console_window;
 use ymb_console::show_console_window;
-use ymb_lifecycle::GLOBAL_ARGS;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
@@ -52,12 +51,21 @@ impl TrayWindow {
                         let toggle_window_text = w!("Toggle Window");
                         let quit_text = w!("Quit");
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
-                        AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text).unwrap();
+                        AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
+                            .unwrap();
                         if SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.load(Ordering::SeqCst) {
-                            AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text).unwrap();
+                            AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
+                                .unwrap();
                         }
-                        AppendMenuW(hmenu, MF_STRING, ID_TOGGLE_WINDOW as usize, toggle_window_text).unwrap();
-                        AppendMenuW(hmenu, MF_STRING, ID_DEBUG_MSG as usize, debug_msg_text).unwrap();
+                        AppendMenuW(
+                            hmenu,
+                            MF_STRING,
+                            ID_TOGGLE_WINDOW as usize,
+                            toggle_window_text,
+                        )
+                        .unwrap();
+                        AppendMenuW(hmenu, MF_STRING, ID_DEBUG_MSG as usize, debug_msg_text)
+                            .unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
                         let mut pt = POINT { x: 0, y: 0 };
                         GetCursorPos(&mut pt).unwrap();
@@ -70,7 +78,8 @@ impl TrayWindow {
                             Default::default(),
                             self.hwnd,
                             None,
-                        ).unwrap();
+                        )
+                        .unwrap();
                         DestroyMenu(hmenu).unwrap();
                     }
                     true
@@ -82,21 +91,30 @@ impl TrayWindow {
                         Some(pipe_name) => {
                             let message_to_send = "ToggleWindowVisibility\n".to_string();
                             std::thread::spawn(move || {
-                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(&*pipe_name) {
+                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
+                                    &*pipe_name,
+                                ) {
                                     Ok(mut stream) => {
                                         info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(message_to_send.as_bytes()) {
-                                            error!("Tray (IPC Thread): Failed to send toggle message: {}", e);
+                                        if let Err(e) = stream.write_all(message_to_send.as_bytes())
+                                        {
+                                            error!(
+                                                "Tray (IPC Thread): Failed to send toggle message: {}",
+                                                e
+                                            );
                                         } else {
                                             info!("Tray (IPC Thread): Sent toggle message");
                                         }
-                                    },
+                                    }
                                     Err(e) => {
-                                        error!("Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?", e);
+                                        error!(
+                                            "Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?",
+                                            e
+                                        );
                                     }
                                 }
                             });
-                        },
+                        }
                         None => {
                             warn!("Tray: IPC pipe name not set. Is GUI running?");
                         }
@@ -115,21 +133,30 @@ impl TrayWindow {
                         Some(pipe_name) => {
                             let message_to_send = "ToggleWindowVisibility\n".to_string();
                             std::thread::spawn(move || {
-                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(&*pipe_name) {
+                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
+                                    &*pipe_name,
+                                ) {
                                     Ok(mut stream) => {
                                         info!("Tray (IPC Thread): Connected to IPC pipe.");
-                                        if let Err(e) = stream.write_all(message_to_send.as_bytes()) {
-                                            error!("Tray (IPC Thread): Failed to send toggle message: {}", e);
+                                        if let Err(e) = stream.write_all(message_to_send.as_bytes())
+                                        {
+                                            error!(
+                                                "Tray (IPC Thread): Failed to send toggle message: {}",
+                                                e
+                                            );
                                         } else {
                                             info!("Tray (IPC Thread): Sent toggle message");
                                         }
-                                    },
+                                    }
                                     Err(e) => {
-                                        error!("Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?", e);
+                                        error!(
+                                            "Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?",
+                                            e
+                                        );
                                     }
                                 }
                             });
-                        },
+                        }
                         None => {
                             warn!("Tray: IPC pipe name not set. Is GUI running?");
                         }
