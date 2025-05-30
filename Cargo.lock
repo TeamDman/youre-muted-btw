@@ -6687,18 +6687,7 @@ dependencies = [
  "ymb_mic_detection_plugin",
  "ymb_mute_status_window_plugin",
  "ymb_ui_automation_plugin",
- "ymb_windows_app_plugin",
  "ymb_world_inspector_plugin",
-]
-
-[[package]]
-name = "ymb_windows_app_plugin"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "windows 0.61.1",
- "ymb_windy",
- "ymb_worker_plugin",
 ]
 
 [[package]]

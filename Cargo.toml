@@ -20,7 +20,6 @@ ymb_world_inspector_plugin = { path = "crates/world_inspector_plugin" }
 ymb_egui_plugin = { path = "crates/egui_plugin" }
 ymb_exit_on_esc_plugin = { path = "crates/exit_on_esc_plugin" }
 ymb_app_under_cursor_plugin = { path = "crates/app_under_cursor_plugin" }
-ymb_windows_app_plugin = { path = "crates/windows_app_plugin" }
 ymb_host_cursor_position_plugin = { path = "crates/host_cursor_position_plugin" }
 ymb_assets = { path = "crates/assets" }
 ymb_worker_plugin = { path = "crates/worker_plugin" }

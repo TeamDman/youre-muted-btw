@@ -125,7 +125,7 @@ fn handle_toggle_window_event(
 
 fn ui(world: &mut World) -> Result {
     // Query for the window entity and get its size
-    let (window_height, window_width) = {
+    let (window_height, _window_width) = {
         let mut window_query = world.query_filtered::<&Window, With<MuteStatusWindow>>();
         if let Some(window) = window_query.iter(world).next() {
             (window.resolution.height(), window.resolution.width())

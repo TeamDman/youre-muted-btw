@@ -13,7 +13,6 @@ ymb_args.workspace = true
 ymb_logs.workspace = true
 windows.workspace = true
 ymb_exit_on_esc_plugin.workspace = true
-ymb_windows_app_plugin.workspace = true
 ymb_assets.workspace = true
 ymb_world_inspector_plugin.workspace = true
 ymb_egui_plugin.workspace = true
