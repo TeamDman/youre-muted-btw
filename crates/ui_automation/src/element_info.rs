@@ -1,8 +1,8 @@
-use crate::control_type::YMBControlType;
-use crate::update_drill_ids;
 use crate::DrillId;
 use crate::IntoBevyIRect;
 use crate::RuntimeId;
+use crate::control_type::YMBControlType;
+use crate::update_drill_ids;
 use bevy::ecs::component::Component;
 use bevy::log::trace;
 use bevy::math::IRect;
@@ -10,8 +10,8 @@ use bevy::reflect::Reflect;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
-use uiautomation::controls::ControlType;
 use uiautomation::UIElement;
+use uiautomation::controls::ControlType;
 
 #[derive(Debug, Clone, Reflect, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[reflect(no_field_bounds)]

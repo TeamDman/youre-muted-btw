@@ -15,3 +15,5 @@ ymb_windy.workspace=true
 ymb_console.workspace=true
 ymb_lifecycle.workspace=true
 ymb_args.workspace=true
+interprocess.workspace = true
+chrono.workspace = true

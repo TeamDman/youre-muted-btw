@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use std::env::current_exe;
 use std::process::Child;
 use std::process::Command;
+use std::sync::OnceLock;
 use std::thread;
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::System::JobObjects::AssignProcessToJobObject;
@@ -28,6 +29,12 @@ pub fn spawn(global_args: GlobalArgs) -> eyre::Result<()> {
 fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
     let exe = current_exe()?;
 
+    // Generate a unique pipe name
+    let pipe_guid = uuid::Uuid::new_v4();
+    // Use the same format as the Bevy IPC plugin expects (\\.\pipe\ymb-gui-ipc-<pid>-<guid>)
+    let gui_pid = std::process::id();
+    let pipe_name = format!(r"\\.\pipe\ymb-gui-ipc-{}-{}", gui_pid, pipe_guid.as_simple());
+
     // Create a job object that kills processes when the handle is closed
     let job_handle = unsafe { CreateJobObjectW(None, None)? };
     let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
@@ -49,10 +56,17 @@ fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
             }
             .as_args(),
         )
+        .env("YMB_IPC_PIPE_NAME", &pipe_name)
         .spawn()?;
 
     // Attach child process to the job
     attach_to_job(job_handle, &mut child)?;
+
+    // Store the pipe name somewhere accessible to the tray (e.g., in a static/global)
+    set_pipe_name_for_tray(pipe_name.clone());
+
+    // Print for debug: ensure the tray and GUI are using the same pipe name
+    info!("[SPAWN] Pipe name for tray and GUI: {}", pipe_name);
 
     // Wait for the GUI process to finish
     let output = child.wait_with_output()?;
@@ -72,4 +86,13 @@ fn attach_to_job(job_handle: HANDLE, child: &mut Child) -> eyre::Result<()> {
     Box::leak(Box::new(job_handle));
 
     Ok(())
+}
+
+// Store the pipe name for the tray to use
+static PIPE_NAME_FOR_TRAY: OnceLock<String> = OnceLock::new();
+fn set_pipe_name_for_tray(name: String) {
+    let _ = PIPE_NAME_FOR_TRAY.set(name);
+}
+pub fn get_pipe_name_for_tray() -> Option<String> {
+    PIPE_NAME_FOR_TRAY.get().cloned()
 }

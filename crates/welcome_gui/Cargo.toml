@@ -18,3 +18,5 @@ ymb_assets.workspace = true
 ymb_world_inspector_plugin.workspace = true
 ymb_egui_plugin.workspace = true
 ymb_ui_automation_plugin.workspace = true
+ymb_ipc_plugin.workspace = true
+uuid.workspace = true

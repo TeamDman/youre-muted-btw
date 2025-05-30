@@ -1,7 +1,12 @@
+use chrono;
+use interprocess::os::windows::named_pipe::DuplexPipeStream;
+use interprocess::os::windows::named_pipe::pipe_mode;
+use std::io::Write;
 use std::sync::atomic::Ordering;
 use tracing::debug;
 use tracing::error;
 use tracing::info;
+use tracing::warn;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::Console::*;
 use windows::Win32::System::LibraryLoader::*;
@@ -25,6 +30,7 @@ const ID_SHOW_LOGS: u32 = 3;
 const ID_HIDE_LOGS: u32 = 5;
 const ID_QUIT: u32 = 4;
 const ID_OPEN: u32 = 6;
+const ID_DEBUG_MSG: u32 = 7;
 
 struct TrayWindow {
     hwnd: HWND,
@@ -44,8 +50,8 @@ impl TrayWindow {
                         let hello_text = w!("Hello!");
                         let show_logs_text = w!("Show logs");
                         let hide_logs_text = w!("Hide logs");
+                        let debug_msg_text = w!("Debug Msg");
                         let quit_text = w!("Quit");
-
                         AppendMenuW(hmenu, MF_STRING, ID_OPEN as usize, open_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
@@ -54,8 +60,9 @@ impl TrayWindow {
                             AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
                                 .unwrap();
                         }
+                        AppendMenuW(hmenu, MF_STRING, ID_DEBUG_MSG as usize, debug_msg_text)
+                            .unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
-
                         let mut pt = POINT { x: 0, y: 0 };
                         GetCursorPos(&mut pt).unwrap();
                         SetForegroundWindow(self.hwnd).unwrap();
@@ -102,6 +109,65 @@ impl TrayWindow {
                     SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.store(false, Ordering::SeqCst);
                     info!("Console hidden");
                     true
+                }
+                ID_DEBUG_MSG => {
+                    info!("Debug Msg menu item clicked");
+                    // Get the pipe name from the welcome_gui spawn module
+                    let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
+                    match pipe_name {
+                        Some(pipe_name) => {
+                            info!(
+                                "Tray: Attempting to send debug message to IPC pipe: {}",
+                                pipe_name
+                            );
+                            let message_to_send = format!(
+                                "Debug message from tray at {}!\n",
+                                chrono::Local::now().format("%H:%M:%S")
+                            );
+                            std::thread::spawn(move || {
+                                match DuplexPipeStream::<pipe_mode::Bytes>::connect_by_path(
+                                    &*pipe_name,
+                                ) {
+                                    Ok(mut stream) => {
+                                        info!("Tray (IPC Thread): Connected to IPC pipe.");
+                                        if let Err(e) = stream.write_all(message_to_send.as_bytes())
+                                        {
+                                            error!(
+                                                "Tray (IPC Thread): Failed to send debug message: {}",
+                                                e
+                                            );
+                                        } else {
+                                            info!(
+                                                "Tray (IPC Thread): Sent debug message: '{}'",
+                                                message_to_send.trim()
+                                            );
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!(
+                                            "Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?",
+                                            e
+                                        );
+                                    }
+                                }
+                            });
+                            true
+                        }
+                        None => {
+                            warn!("Tray: IPC pipe name not set. Is GUI running?");
+                            unsafe {
+                                MessageBoxW(
+                                    Some(self.hwnd),
+                                    w!(
+                                        "GUI IPC pipe name not found. Is the GUI application running and its IPC server initialized?"
+                                    ),
+                                    w!("IPC Error"),
+                                    MB_OK,
+                                );
+                            }
+                            true
+                        }
+                    }
                 }
                 ID_QUIT => {
                     unsafe {

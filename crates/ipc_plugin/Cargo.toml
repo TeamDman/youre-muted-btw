@@ -1,0 +1,15 @@
+[package]
+name = "ymb_ipc_plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+bevy.workspace = true
+ymb_worker_plugin.workspace = true
+interprocess.workspace = true
+tracing.workspace = true
+eyre.workspace = true
+uuid.workspace = true

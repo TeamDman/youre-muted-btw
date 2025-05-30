@@ -4,8 +4,8 @@ use crate::LastChildEncountered;
 use crate::RootEndEncountered;
 use crate::StopBehaviour;
 use crate::TaskbarEndEncountered;
-use std::collections::VecDeque;
 use bevy::log::error;
+use std::collections::VecDeque;
 use uiautomation::UIElement;
 use uiautomation::UITreeWalker;
 

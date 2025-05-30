@@ -1811,6 +1811,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -2257,6 +2258,12 @@ checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
  "libloading",
 ]
+
+[[package]]
+name = "doctest-file"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aac81fa3e28d21450aa4d2ac065992ba96a1d7303efbce51a95f4fd175b67562"
 
 [[package]]
 name = "document-features"
@@ -3168,6 +3175,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "interprocess"
+version = "2.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d941b405bd2322993887859a8ee6ac9134945a24ec5ec763a8a962fc64dfec2d"
+dependencies = [
+ "doctest-file",
+ "libc",
+ "recvmsg",
+ "widestring",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4524,6 +4544,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0d463f2884048e7153449a55166f91028d5b0ea53c79377099ce4e8cf0cf9bb"
 
 [[package]]
+name = "recvmsg"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3edd4d5d42c92f0a659926464d4cce56b562761267ecf0f469d85b7de384175"
+
+[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5862,6 +5888,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "widestring"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd7cf3379ca1aac9eea11fba24fd7e315d621f8dfe35c8d7d2be8b793726e07d"
+
+[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6532,6 +6564,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ymb_ipc_plugin"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "eyre",
+ "interprocess",
+ "tracing",
+ "uuid",
+ "ymb_worker_plugin",
+]
+
+[[package]]
 name = "ymb_lifecycle"
 version = "0.1.0"
 dependencies = [
@@ -6554,6 +6598,8 @@ dependencies = [
 name = "ymb_tray"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "interprocess",
  "tracing",
  "windows 0.61.1",
  "ymb_args",
@@ -6594,11 +6640,13 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "eyre",
+ "uuid",
  "windows 0.61.1",
  "ymb_args",
  "ymb_assets",
  "ymb_egui_plugin",
  "ymb_exit_on_esc_plugin",
+ "ymb_ipc_plugin",
  "ymb_logs",
  "ymb_ui_automation_plugin",
  "ymb_windows_app_plugin",

@@ -1,5 +1,6 @@
 use uiautomation::UIAutomation;
-use ymb_ui_automation::{DiscordMuteButton, MuteButtonState};
+use ymb_ui_automation::DiscordMuteButton;
+use ymb_ui_automation::MuteButtonState;
 
 #[test]
 fn it_works() -> eyre::Result<()> {
