@@ -60,7 +60,7 @@ fn handle_threadbound_message(
     msg: &ThreadboundMessage,
     reply_tx: &Sender<GameboundMessage>,
     state: &mut WorkerState,
-) -> Result<()> {
+) -> Result {
     match msg {
         ThreadboundMessage::Reset => {
             state.count = 0;

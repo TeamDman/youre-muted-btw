@@ -21,3 +21,6 @@ ymb_ui_automation_plugin.workspace = true
 ymb_ipc_plugin.workspace = true
 uuid.workspace = true
 ymb_mute_status_window_plugin.workspace = true
+
+[dependencies.ymb_mic_detection_plugin]
+workspace = true

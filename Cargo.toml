@@ -29,6 +29,7 @@ ymb_ui_automation_plugin = { path = "crates/ui_automation_plugin" }
 ymb_tree_window_plugin = { path = "crates/tree_window_plugin" }
 ymb_targeting_circle = { path = "crates/targeting_circle" }
 ymb_mute_status_window_plugin = { path = "crates/mute_status_window_plugin" }
+ymb_mic_detection_plugin = { path = "crates/mic_detection_plugin" }
 uiautomation = "0.18.4"
 serde = { version = "1.0.219", features = ["derive"] }
 bevy_egui = "0.34.1"
@@ -40,17 +41,27 @@ eyre = "0.6.12"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 windows = { version = "0.61.1", features = [
+    "Win32_Devices_Properties",
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
+    "Win32_Media_Audio",
+    "Win32_Media_KernelStreaming",
+    "Win32_Media_Multimedia",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_Storage",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Com",
+    "Win32_System_Console",
+    "Win32_System_JobObjects",
     "Win32_System_LibraryLoader",
+    "Win32_System_Ole",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+    "Win32_UI_Shell_PropertiesSystem",
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
-    "Win32_System_Console",
-    "Win32_Storage",
-    "Win32_Storage_FileSystem",
-    "Win32_System_Threading",
-    "Win32_System_JobObjects",
-    "Win32_Security",
 ] }
 strum = { version = "0.27.1", features = ["derive"] }
 bevy_log = "0.16.0"

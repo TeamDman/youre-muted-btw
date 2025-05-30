@@ -12,8 +12,8 @@ use bevy::reflect::GetTypeRegistration;
 
 pub struct WorkerPlugin<ThreadboundMessage, GameboundMessage, WorkerState>
 where
-    ThreadboundMessage: WorkerMessage,
-    GameboundMessage: WorkerMessage,
+    ThreadboundMessage: WorkerMessage + GetTypeRegistration,
+    GameboundMessage: WorkerMessage + GetTypeRegistration,
     WorkerState: WorkerStateTrait,
 {
     pub config: WorkerConfig<ThreadboundMessage, GameboundMessage, WorkerState>,
