@@ -1,3 +1,4 @@
+use bincode;
 use chrono;
 use interprocess::os::windows::named_pipe::DuplexPipeStream;
 use interprocess::os::windows::named_pipe::pipe_mode;
@@ -17,12 +18,11 @@ use ymb_args::GlobalArgs;
 use ymb_console::ctrl_handler;
 use ymb_console::hide_console_window;
 use ymb_console::show_console_window;
+use ymb_ipc_plugin::BevyboundIPCMessage;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
 use ymb_windy::WindyResult;
-use bincode;
-use ymb_ipc_plugin::BevyboundIPCMessage;
 
 const WM_TRAYICON: u32 = WM_USER + 1;
 const ID_TRAYICON: u32 = 1;
@@ -59,7 +59,13 @@ impl TrayWindow {
                             AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
                                 .unwrap();
                         }
-                        AppendMenuW(hmenu, MF_STRING, ID_WORLD_INSPECTOR as usize, world_inspector_text).unwrap();
+                        AppendMenuW(
+                            hmenu,
+                            MF_STRING,
+                            ID_WORLD_INSPECTOR as usize,
+                            world_inspector_text,
+                        )
+                        .unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_DEBUG_MSG as usize, debug_msg_text)
                             .unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
@@ -120,7 +126,13 @@ impl TrayWindow {
                     let pipe_name = ymb_welcome_gui::spawn::get_pipe_name_for_tray();
                     match pipe_name {
                         Some(pipe_name) => {
-                            send_ipc_message(pipe_name, BevyboundIPCMessage::DebugMessageReceived(format!("Debug message from tray at {}!", chrono::Local::now().format("%H:%M:%S"))));
+                            send_ipc_message(
+                                pipe_name,
+                                BevyboundIPCMessage::DebugMessageReceived(format!(
+                                    "Debug message from tray at {}!",
+                                    chrono::Local::now().format("%H:%M:%S")
+                                )),
+                            );
                             true
                         }
                         None => {
@@ -201,7 +213,10 @@ fn send_ipc_message(pipe_name: String, message: BevyboundIPCMessage) {
                 }
             }
             Err(e) => {
-                error!("Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?", e);
+                error!(
+                    "Tray (IPC Thread): Failed to connect to IPC pipe: {}. Is GUI running and its IPC server ready?",
+                    e
+                );
             }
         }
     });
@@ -278,19 +293,26 @@ pub fn main(global_args: GlobalArgs, log_buffer: LogBuffer) -> WindyResult<()> {
         // Set up Ctrl+C handler
         SetConsoleCtrlHandler(Some(ctrl_handler), true)?;
 
-        // Load the icon
-        let icon_path = w!("favicon.ico");
-        let icon = LoadImageW(
-            Some(instance.into()),
-            icon_path,
-            IMAGE_ICON,
-            0,
-            0,
-            LR_LOADFROMFILE,
-        );
-        let icon = match icon {
-            Ok(icon) => HICON(icon.0),
-            Err(_) => LoadIconW(None, IDI_APPLICATION)?,
+        // Load the icon from embedded resources using LoadIconW
+        let icon = {
+            let instance = GetModuleHandleW(None)?;
+            let resource_name = w!("aaa_my_icon");
+            match LoadIconW(Some(HINSTANCE(instance.0)), resource_name) {
+                Ok(hicon) => hicon,
+                Err(e) => {
+                    error!("Failed to load icon resource 'aaa_my_icon': {e}");
+                    // Fallback to default application icon
+                    match LoadIconW(None, IDI_APPLICATION) {
+                        Ok(fallback_icon) => fallback_icon,
+                        Err(fallback_error) => {
+                            error!(
+                                "Failed to load fallback IDI_APPLICATION icon: {fallback_error}"
+                            );
+                            return Err(fallback_error.into());
+                        }
+                    }
+                }
+            }
         };
 
         // Create tray icon

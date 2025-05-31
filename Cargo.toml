@@ -97,3 +97,6 @@ ymb_logs.workspace = true
 ymb_console.workspace = true
 ymb_welcome_gui.workspace = true
 ymb_lifecycle.workspace = true
+
+[build-dependencies]
+embed-resource = "3.0.3"
