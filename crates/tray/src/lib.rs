@@ -317,12 +317,12 @@ pub fn main(global_args: GlobalArgs, log_buffer: LogBuffer) -> WindyResult<()> {
         let window = Box::new(TrayWindow {
             hwnd,
             nid,
-            log_buffer,
+            log_buffer: log_buffer.clone(),
         });
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
 
         // Spawn Bevy app
-        ymb_welcome_gui::spawn(global_args)?;
+        ymb_welcome_gui::spawn(global_args, log_buffer)?;
 
         // Message loop
         let mut msg = MSG::default();

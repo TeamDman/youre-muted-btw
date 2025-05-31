@@ -1,7 +1,11 @@
+use bevy::log::tracing_subscriber::fmt::MakeWriter;
 use bevy::prelude::*;
 use std::env::current_exe;
+use std::io::BufRead;
+use std::io::BufReader;
 use std::process::Child;
 use std::process::Command;
+use std::process::Stdio;
 use std::sync::OnceLock;
 use std::thread;
 use windows::Win32::Foundation::HANDLE;
@@ -13,11 +17,12 @@ use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
 use windows::Win32::System::JobObjects::SetInformationJobObject;
 use ymb_args::Args;
 use ymb_args::GlobalArgs;
+use ymb_logs::LogBuffer;
 
-pub fn spawn(global_args: GlobalArgs) -> eyre::Result<()> {
+pub fn spawn(global_args: GlobalArgs, log_buffer: LogBuffer) -> eyre::Result<()> {
     info!("Ahoy from GUI!");
     thread::spawn(move || {
-        let result = spawn_gui_with_job(global_args);
+        let result = spawn_gui_with_job(global_args, log_buffer);
         if let Err(e) = result {
             error!("Error running GUI: {e}");
             std::process::exit(1);
@@ -26,14 +31,18 @@ pub fn spawn(global_args: GlobalArgs) -> eyre::Result<()> {
     Ok(())
 }
 
-fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
+fn spawn_gui_with_job(global_args: GlobalArgs, log_buffer: LogBuffer) -> eyre::Result<()> {
     let exe = current_exe()?;
 
     // Generate a unique pipe name
     let pipe_guid = uuid::Uuid::new_v4();
     // Use the same format as the Bevy IPC plugin expects (\\.\pipe\ymb-gui-ipc-<pid>-<guid>)
     let gui_pid = std::process::id();
-    let pipe_name = format!(r"\\.\pipe\ymb-gui-ipc-{}-{}", gui_pid, pipe_guid.as_simple());
+    let pipe_name = format!(
+        r"\\.\pipe\ymb-gui-ipc-{}-{}",
+        gui_pid,
+        pipe_guid.as_simple()
+    );
 
     // Create a job object that kills processes when the handle is closed
     let job_handle = unsafe { CreateJobObjectW(None, None)? };
@@ -57,6 +66,8 @@ fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
             .as_args(),
         )
         .env("YMB_IPC_PIPE_NAME", &pipe_name)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()?;
 
     // Attach child process to the job
@@ -67,6 +78,33 @@ fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
 
     // Print for debug: ensure the tray and GUI are using the same pipe name
     info!("[SPAWN] Pipe name for tray and GUI: {}", pipe_name);
+
+    // Pipe child stdout/stderr to the tray's log buffer
+    if let Some(stdout) = child.stdout.take() {
+        let log_buffer = log_buffer.clone();
+        std::thread::spawn(move || {
+            let writer = log_buffer.make_writer();;
+            for line in reader.lines() {
+                if let Ok(line) = line {
+                    let mut buffer = log_buffer.lock().unwrap();
+                    buffer.extend_from_slice(line.as_bytes());
+                    buffer.push(b'\n');
+                }
+            }
+        });
+    }
+    if let Some(stderr) = child.stderr.take() {
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                if let Ok(line) = line {
+                    let mut buffer = log_buffer.lock().unwrap();
+                    buffer.extend_from_slice(line.as_bytes());
+                    buffer.push(b'\n');
+                }
+            }
+        });
+    }
 
     // Wait for the GUI process to finish
     let output = child.wait_with_output()?;
