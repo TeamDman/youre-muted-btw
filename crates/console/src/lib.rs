@@ -1,3 +1,5 @@
+mod ansi_support;
+pub use ansi_support::*;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
@@ -12,6 +14,8 @@ use windows::core::BOOL;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
+use windows::Win32::System::Console::{AttachConsole, FreeConsole};
+use windows::Win32::Foundation::{GetLastError, ERROR_ACCESS_DENIED};
 
 // todo: rename to detach
 pub fn hide_console_window() {
@@ -45,35 +49,47 @@ pub unsafe extern "system" fn ctrl_handler(ctrl_type: u32) -> BOOL {
     }
 }
 
-// todo: rename to attach
-pub fn show_console_window(log_buffer: LogBuffer) {
+pub fn attach_console_window(log_buffer: LogBuffer) {
+    // Create new console
     if let Err(e) = unsafe { AllocConsole() } {
         error!("Failed to allocate console: {}", e);
-    } else {
-        SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.store(true, Ordering::SeqCst);
-        // Set up console control handler for the new console
-        if let Err(e) = unsafe { SetConsoleCtrlHandler(Some(ctrl_handler), true) } {
-            error!("Failed to set console control handler: {}", e);
-        }
-
-        // Replay buffered logs
-        if let Ok(buffer) = log_buffer.lock() {
-            if let Ok(logs) = String::from_utf8(buffer.clone()) {
-                println!("=== Previous logs ===");
-                println!("{logs}");
-                println!("=== End of previous logs ===");
-            }
-        }
-        info!("Console allocated, new logs will be visible here");
-        info!("Closing this window will exit the program");
-        info!(
-            "The system tray icon now has a 'Hide logs' option if you want to close this window without exiting the program"
-        );
-        thread::spawn(move || {
-            thread::sleep(Duration::from_secs(5));
-            info!("Ahoy, there!");
-        });
+        return;
     }
+
+    // Update the flag for the tray action
+    SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.store(true, Ordering::SeqCst);
+
+    // Attach ctrl+c handler
+    if let Err(e) = unsafe { SetConsoleCtrlHandler(Some(ctrl_handler), true) } {
+        error!("Failed to set console control handler: {}", e);
+    }
+
+    // Enable ANSI support
+    if let Err(e) = enable_ansi_support() {
+        error!("Failed to enable ANSI support: {:?}", e);
+    }
+
+    // Replay buffered logs
+    if let Ok(buffer) = log_buffer.lock() {
+        if let Ok(logs) = String::from_utf8(buffer.clone()) {
+            println!("=== Previous logs ===");
+            println!("{logs}");
+            println!("=== End of previous logs ===");
+        }
+    }
+
+    // Tell the user whats up
+    info!("Console allocated, new logs will be visible here");
+    info!("Closing this window will exit the program");
+    info!(
+        "The system tray icon now has a 'Hide logs' option if you want to close this window without exiting the program"
+    );
+
+    // Diagnostic message to show that the console is working
+    thread::spawn(move || {
+        thread::sleep(Duration::from_secs(5));
+        info!("Ahoy, there!");
+    });
 }
 
 pub fn is_inheriting_console() -> bool {
@@ -86,6 +102,37 @@ pub fn is_inheriting_console() -> bool {
     );
 
     rtn != 1
+}
+
+/// Handles console attachment/detachment logic for windows subsystem apps.
+/// Returns true if logs should go to the terminal, false if logs should go to buffer.
+pub fn maybe_attach_or_hide_console() -> bool {
+    let mut ran_from_inherited_console = is_inheriting_console();
+    if ran_from_inherited_console {
+        unsafe {
+            // Try to attach to parent console (ATTACH_PARENT_PROCESS = u32::MAX)
+            if !AttachConsole(u32::MAX).is_ok() {
+                let error = GetLastError();
+                if error != ERROR_ACCESS_DENIED {
+                    // Only treat as failure if not "already attached"
+                    eprintln!(
+                        "Warning: is_inheriting_console was true, but AttachConsole failed with error: {:?}",
+                        error
+                    );
+                    ran_from_inherited_console = false;
+                }
+            }
+        }
+    } else {
+        // Not running from a terminal, so hide/detach the auto console if present
+        unsafe {
+            info!("Attempting to detach from console (if any is attached)");
+            if let Err(e) = FreeConsole() {
+                debug!("FreeConsole failed (likely no console was attached): {}", e);
+            }
+        }
+    }
+    ran_from_inherited_console
 }
 
 #[cfg(test)]

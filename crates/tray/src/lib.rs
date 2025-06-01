@@ -17,7 +17,7 @@ use windows::core::w;
 use ymb_args::GlobalArgs;
 use ymb_console::ctrl_handler;
 use ymb_console::hide_console_window;
-use ymb_console::show_console_window;
+use ymb_console::attach_console_window;
 use ymb_ipc_plugin::BevyboundIPCMessage;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
@@ -111,7 +111,7 @@ impl TrayWindow {
                 }
                 ID_SHOW_LOGS => {
                     hide_console_window();
-                    show_console_window(self.log_buffer.clone());
+                    attach_console_window(self.log_buffer.clone());
                     true
                 }
                 ID_HIDE_LOGS => {

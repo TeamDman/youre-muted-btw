@@ -1,18 +1,23 @@
+#![windows_subsystem = "windows"]
 use clap::CommandFactory;
 use clap::FromArgMatches;
 use tracing::debug;
 use tracing::info;
 use ymb_args::Args;
 use ymb_args::Command;
-use ymb_console::hide_console_window;
-use ymb_console::is_inheriting_console;
+use ymb_console::maybe_attach_or_hide_console;
 use ymb_lifecycle::GLOBAL_ARGS;
 use ymb_logs::DualWriter;
 use ymb_logs::setup_tracing;
 use ymb_windy::WindyResult;
 
 fn main() -> WindyResult<()> {
-    color_eyre::install()?;
+    // Handle console attach/detach logic before any logging or error handling is set up
+    let ran_from_inherited_console = maybe_attach_or_hide_console();
+
+    if let Err(e) = color_eyre::install() {
+        eprintln!("Failed to install color_eyre: {:?}", e);
+    }
 
     let panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
@@ -36,17 +41,9 @@ fn main() -> WindyResult<()> {
             let log_buffer = writer.buffer.clone();
             setup_tracing(&args.global, writer)?;
             info!("Running tray icon application");
+            info!("Running from console: {}", ran_from_inherited_console);
 
-            let ran_from_console = is_inheriting_console();
-            info!("Running from console: {}", ran_from_console);
-
-            // Hide the console window at startup
-            if ran_from_console {
-                debug!("Already running from terminal, no need to hide console window");
-            } else {
-                debug!("Not launched from a console, hiding the default one");
-                hide_console_window();
-            }
+            // No need to call hide_console_window here; handled in maybe_attach_or_hide_console
 
             info!("Starting tray icon application");
             ymb_tray::main(args.global, log_buffer)?;
@@ -54,6 +51,7 @@ fn main() -> WindyResult<()> {
         Some(Command::WelcomeGui) => {
             setup_tracing(&args.global, std::io::stderr)?;
             info!("Running GUI application");
+            info!("Running from console: {}", ran_from_inherited_console);
             ymb_welcome_gui::run(&args.global)?;
         }
     }
