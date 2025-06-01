@@ -1,5 +1,12 @@
 use bevy::prelude::*;
 use std::env::current_exe;
+
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+#[cfg(windows)]
+const DETACHED_PROCESS: u32 = 0x00000008;
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 use std::process::Child;
 use std::process::Command;
 use std::sync::OnceLock;
@@ -33,7 +40,11 @@ fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
     let pipe_guid = uuid::Uuid::new_v4();
     // Use the same format as the Bevy IPC plugin expects (\\.\pipe\ymb-gui-ipc-<pid>-<guid>)
     let gui_pid = std::process::id();
-    let pipe_name = format!(r"\\.\pipe\ymb-gui-ipc-{}-{}", gui_pid, pipe_guid.as_simple());
+    let pipe_name = format!(
+        r"\\.\pipe\ymb-gui-ipc-{}-{}",
+        gui_pid,
+        pipe_guid.as_simple()
+    );
 
     // Create a job object that kills processes when the handle is closed
     let job_handle = unsafe { CreateJobObjectW(None, None)? };
@@ -57,6 +68,7 @@ fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
             }
             .as_args(),
         )
+        .creation_flags(DETACHED_PROCESS | CREATE_NO_WINDOW)
         .env("YMB_IPC_PIPE_NAME", &pipe_name)
         .spawn()?;
 

@@ -1,11 +1,9 @@
 use clap::CommandFactory;
-use clap::FromArgMatches;
 use clap::Parser;
 use tracing::info;
 use ymb_args::Args;
 use ymb_args::Command;
 use ymb_console::is_inheriting_console;
-use ymb_console::maybe_attach_or_hide_console;
 use ymb_lifecycle::GLOBAL_ARGS;
 use ymb_logs::DualWriter;
 use ymb_logs::setup_tracing;
@@ -22,7 +20,7 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 fn main() -> WindyResult<()> {
     // --- Early argument parsing to check for --tray-mode-active and console state ---
     let preliminary_args = Args::try_parse();
-    let (parsed_args_ok, is_tray_mode_arg, is_inheriting_console_arg) = match &preliminary_args {
+    let (_parsed_args_ok, is_tray_mode_arg, is_inheriting_console_arg) = match &preliminary_args {
         Ok(args) => (true, args.tray_mode_active, is_inheriting_console()),
         Err(_) => (false, false, is_inheriting_console()),
     };
