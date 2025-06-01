@@ -55,7 +55,7 @@ impl TrayWindow {
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
                             .unwrap();
-                        if SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.load(Ordering::SeqCst) {
+                        if true || SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.load(Ordering::SeqCst) {
                             AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
                                 .unwrap();
                         }

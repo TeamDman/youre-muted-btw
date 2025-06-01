@@ -53,6 +53,7 @@ fn spawn_gui_with_job(global_args: GlobalArgs) -> eyre::Result<()> {
             Args {
                 global: global_args,
                 command: Some(ymb_args::Command::WelcomeGui),
+                tray_mode_active: true,
             }
             .as_args(),
         )
