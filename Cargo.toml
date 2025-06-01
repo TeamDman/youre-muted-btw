@@ -100,3 +100,10 @@ ymb_lifecycle.workspace = true
 
 [build-dependencies]
 embed-resource = "3.0.3"
+
+[profile.release]
+opt-level = "z"  # Optimize for size.
+lto = true
+strip = true  # Automatically strip symbols from the binary.
+codegen-units = 1
+panic = "abort"

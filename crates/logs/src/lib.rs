@@ -78,8 +78,8 @@ pub fn setup_tracing(
     writer: impl for<'writer> MakeWriter<'writer> + Send + Sync + 'static,
 ) -> eyre::Result<()> {
     let mine = SubscriberBuilder::default()
-        .with_file(true)
-        .with_line_number(true)
+        .with_file(cfg!(debug_assertions))
+        .with_line_number(cfg!(debug_assertions))
         .with_level(true)
         .with_target(false)
         .with_ansi(true)

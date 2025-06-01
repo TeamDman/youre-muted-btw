@@ -1,5 +1,3 @@
-// disable windows console
-
 use clap::CommandFactory;
 use clap::FromArgMatches;
 use tracing::debug;
@@ -47,7 +45,7 @@ fn main() -> WindyResult<()> {
                 debug!("Already running from terminal, no need to hide console window");
             } else {
                 debug!("Not launched from a console, hiding the default one");
-                // hide_console_window();
+                hide_console_window();
             }
 
             info!("Starting tray icon application");
