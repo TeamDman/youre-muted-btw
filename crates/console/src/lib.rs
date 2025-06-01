@@ -3,7 +3,6 @@ pub use ansi_support::*;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
-use tracing::debug;
 use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::ERROR_ACCESS_DENIED;
@@ -15,7 +14,6 @@ use windows::Win32::System::Console::GetConsoleProcessList;
 use windows::Win32::System::Console::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::BOOL;
-use windows::core::w;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
@@ -121,9 +119,7 @@ pub fn maybe_attach_or_hide_console() -> bool {
     if is_inherited_result {
         unsafe {
             // Try to attach to parent console
-            if AttachConsole(u32::MAX).is_ok()
-                || GetLastError() == ERROR_ACCESS_DENIED
-            {
+            if AttachConsole(u32::MAX).is_ok() || GetLastError() == ERROR_ACCESS_DENIED {
                 if let Err(e) = enable_ansi_support() {
                     eprintln!(
                         "[console] Warning: Failed to enable ANSI support for attached console: {:?}",

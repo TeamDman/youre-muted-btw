@@ -1,23 +1,22 @@
 use clap::CommandFactory;
 use clap::Parser;
+use std::env;
+use std::os::windows::process::CommandExt;
+use std::process::Command as StdCommand;
 use tracing::info;
 use ymb_args::Args;
 use ymb_args::Command;
 use ymb_console::is_inheriting_console;
 use ymb_lifecycle::GLOBAL_ARGS;
-use ymb_logs::DualWriter;
+use ymb_logs::DualLogWriter;
 use ymb_logs::setup_tracing;
 use ymb_windy::WindyResult;
-use std::process::Command as StdCommand;
-use std::env;
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
-#[cfg(windows)]
+
 const DETACHED_PROCESS: u32 = 0x00000008;
-#[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 fn main() -> WindyResult<()> {
+    eprintln!("Ahoy from fn main!");
     // --- Early argument parsing to check for --tray-mode-active and console state ---
     let preliminary_args = Args::try_parse();
     let (_parsed_args_ok, is_tray_mode_arg, is_inheriting_console_arg) = match &preliminary_args {
@@ -28,26 +27,21 @@ fn main() -> WindyResult<()> {
     // Re-launch logic:
     // If NOT launched with --tray-mode-active AND NOT inheriting an existing console (e.g., double-clicked)
     if !is_tray_mode_arg && !is_inheriting_console_arg {
-        eprintln!("Initial launch without inherited console detected. Re-launching in detached tray mode...");
+        eprintln!(
+            "Initial launch without inherited console detected. Re-launching in detached tray mode..."
+        );
         let current_exe = env::current_exe().expect("Failed to get current executable path.");
         // Collect all original arguments EXCEPT the executable itself
-        let mut cmd_args: Vec<String> = env::args_os().skip(1).map(|s| s.into_string().unwrap()).collect();
+        let mut cmd_args: Vec<String> = env::args_os()
+            .skip(1)
+            .map(|s| s.into_string().unwrap())
+            .collect();
         cmd_args.push("--tray-mode-active".to_string());
-        #[cfg(windows)]
-        {
-            StdCommand::new(current_exe)
-                .args(&cmd_args)
-                .creation_flags(DETACHED_PROCESS | CREATE_NO_WINDOW)
-                .spawn()
-                .expect("Failed to re-launch application in detached mode.");
-        }
-        #[cfg(not(windows))]
-        {
-            StdCommand::new(current_exe)
-                .args(&cmd_args)
-                .spawn()
-                .expect("Failed to re-launch application.");
-        }
+        StdCommand::new(current_exe)
+            .args(&cmd_args)
+            .creation_flags(DETACHED_PROCESS | CREATE_NO_WINDOW)
+            .spawn()
+            .expect("Failed to re-launch application in detached mode.");
         return Ok(()); // Initial process exits
     }
 
@@ -72,7 +66,9 @@ fn main() -> WindyResult<()> {
         if ymb_console::maybe_attach_or_hide_console() {
             ran_from_inherited_console_successfully = true;
         } else {
-            eprintln!("[main] Warning: Detected inherited console, but maybe_attach_or_hide_console returned false after attempt.");
+            eprintln!(
+                "[main] Warning: Detected inherited console, but maybe_attach_or_hide_console returned false after attempt."
+            );
         }
     }
     // If args.tray_mode_active is true, ran_from_inherited_console_successfully remains false.
@@ -101,11 +97,10 @@ fn main() -> WindyResult<()> {
     // The DualWriter will write to stderr (if connected) and an internal buffer.
     // If ran_from_inherited_console_successfully = true, stderr is the terminal.
     // If false (detached tray mode), stderr is likely disconnected initially.
-    let writer = DualWriter::new();
-    let log_buffer_for_tray = writer.buffer.clone(); // Clone buffer for tray's "Show Logs"
+    let log_writer = DualLogWriter::new();
 
     // Pass the writer to setup_tracing.
-    setup_tracing(&args.global, writer)?;
+    setup_tracing(&args.global, log_writer.clone())?;
 
     info!(
         "Application starting. Inherited console: {}, Tray mode active: {}",
@@ -115,7 +110,7 @@ fn main() -> WindyResult<()> {
     match args.command {
         None | Some(Command::Tray) => {
             info!("Starting tray icon process...");
-            ymb_tray::main(args.global, log_buffer_for_tray)?; // Pass the cloned buffer
+            ymb_tray::main(args.global, log_writer)?; // Pass the cloned buffer
         }
         Some(Command::WelcomeGui) => {
             info!("Starting GUI process...");

@@ -21,6 +21,7 @@ use ymb_console::hide_console_window;
 use ymb_ipc_plugin::BevyboundIPCMessage;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
+use ymb_logs::DualLogWriter;
 use ymb_logs::LogBuffer;
 use ymb_windy::WindyResult;
 
@@ -211,7 +212,7 @@ fn send_ipc_message(pipe_name: String, message: BevyboundIPCMessage) {
                 if let Err(e) = stream.write_all(&message_to_send) {
                     error!("Tray (IPC Thread): Failed to send IPC message: {}", e);
                 } else {
-                    info!("Tray (IPC Thread): Sent IPC message");
+                    info!("Tray (IPC Thread): Sent IPC message {message:?}");
                 }
             }
             Err(e) => {
@@ -253,7 +254,7 @@ unsafe extern "system" fn window_proc(
     }
 }
 
-pub fn main(global_args: GlobalArgs, log_buffer: LogBuffer) -> WindyResult<()> {
+pub fn main(global_args: GlobalArgs, log_writer: DualLogWriter) -> WindyResult<()> {
     unsafe {
         let instance = {
             let mut out = Default::default();
@@ -341,12 +342,12 @@ pub fn main(global_args: GlobalArgs, log_buffer: LogBuffer) -> WindyResult<()> {
         let window = Box::new(TrayWindow {
             hwnd,
             nid,
-            log_buffer,
+            log_buffer: log_writer.buffer.clone(),
         });
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(window) as _);
 
         // Spawn Bevy app
-        ymb_welcome_gui::spawn(global_args)?;
+        ymb_welcome_gui::spawn(global_args, log_writer)?;
 
         // Message loop
         let mut msg = MSG::default();

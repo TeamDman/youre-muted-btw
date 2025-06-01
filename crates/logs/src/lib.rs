@@ -32,20 +32,29 @@ impl DerefMut for LogBuffer {
     }
 }
 
-pub struct DualWriter {
+#[derive(Debug)]
+pub struct DualLogWriter {
     pub stdout: std::io::Stderr,
     pub buffer: LogBuffer,
 }
-impl DualWriter {
+impl DualLogWriter {
     pub fn new() -> Self {
-        DualWriter {
+        DualLogWriter {
             stdout: std::io::stderr(),
             buffer: LogBuffer::default(),
         }
     }
 }
+impl Clone for DualLogWriter {
+    fn clone(&self) -> Self {
+        DualLogWriter {
+            stdout: std::io::stderr(),
+            buffer: self.buffer.clone(),
+        }
+    }
+}
 
-impl Write for DualWriter {
+impl Write for DualLogWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         // Write to stdout
         self.stdout.write(buf)?;
@@ -62,11 +71,11 @@ impl Write for DualWriter {
     }
 }
 
-impl<'a> MakeWriter<'a> for DualWriter {
+impl<'a> MakeWriter<'a> for DualLogWriter {
     type Writer = Self;
 
     fn make_writer(&'a self) -> Self::Writer {
-        DualWriter {
+        DualLogWriter {
             stdout: std::io::stderr(),
             buffer: self.buffer.clone(),
         }

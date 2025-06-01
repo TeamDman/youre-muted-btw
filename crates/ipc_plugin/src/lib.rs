@@ -137,7 +137,7 @@ fn handle_gamebound_messages(
     for msg in messages.read() {
         match msg {
             IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::DebugMessageReceived(text)) => {
-                debug!("Bevy App (Main Thread): Received IPC Debug Message: '{}'", text);
+                info!("Bevy App (Main Thread): Received IPC Debug Message: '{}'", text);
             }
             IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::TrayIconClicked) => {
                 info!("Received ToggleWindowVisibility IPC message (no-op in ipc_plugin)");
