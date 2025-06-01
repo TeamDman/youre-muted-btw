@@ -15,9 +15,9 @@ use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::w;
 use ymb_args::GlobalArgs;
+use ymb_console::attach_console_window;
 use ymb_console::ctrl_handler;
 use ymb_console::hide_console_window;
-use ymb_console::attach_console_window;
 use ymb_ipc_plugin::BevyboundIPCMessage;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
@@ -55,7 +55,7 @@ impl TrayWindow {
                         AppendMenuW(hmenu, MF_STRING, ID_HELLO as usize, hello_text).unwrap();
                         AppendMenuW(hmenu, MF_STRING, ID_SHOW_LOGS as usize, show_logs_text)
                             .unwrap();
-                        if true || SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.load(Ordering::SeqCst) {
+                        if SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION.load(Ordering::SeqCst) {
                             AppendMenuW(hmenu, MF_STRING, ID_HIDE_LOGS as usize, hide_logs_text)
                                 .unwrap();
                         }
@@ -71,7 +71,9 @@ impl TrayWindow {
                         AppendMenuW(hmenu, MF_STRING, ID_QUIT as usize, quit_text).unwrap();
                         let mut pt = POINT { x: 0, y: 0 };
                         GetCursorPos(&mut pt).unwrap();
-                        SetForegroundWindow(self.hwnd).unwrap();
+                        if let Err(e) = SetForegroundWindow(self.hwnd).ok() {
+                            error!("Failed to set foreground window: {}", e);
+                        }
                         TrackPopupMenu(
                             hmenu,
                             TPM_RIGHTBUTTON,

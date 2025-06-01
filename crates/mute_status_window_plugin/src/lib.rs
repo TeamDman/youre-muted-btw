@@ -117,6 +117,7 @@ fn handle_toggle_window_event(
                     Name::new("Mute Status Window"),
                     EguiMultipassSchedule::new(MuteStatusWindowEguiContextPass),
                 ));
+                // todo: bring to foreground
                 info!("Mute Status window spawned (toggle event)");
             }
         }
