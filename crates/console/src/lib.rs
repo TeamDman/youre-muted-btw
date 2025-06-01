@@ -6,16 +6,19 @@ use std::time::Duration;
 use tracing::debug;
 use tracing::error;
 use tracing::info;
+use windows::Win32::Foundation::ERROR_ACCESS_DENIED;
+use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Foundation::*;
+use windows::Win32::System::Console::AttachConsole;
+use windows::Win32::System::Console::FreeConsole;
 use windows::Win32::System::Console::GetConsoleProcessList;
 use windows::Win32::System::Console::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::BOOL;
+use windows::core::w;
 use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::LogBuffer;
-use windows::Win32::System::Console::{AttachConsole, FreeConsole};
-use windows::Win32::Foundation::{GetLastError, ERROR_ACCESS_DENIED};
 
 // todo: rename to detach
 pub fn hide_console_window() {
@@ -93,46 +96,97 @@ pub fn attach_console_window(log_buffer: LogBuffer) {
 }
 
 pub fn is_inheriting_console() -> bool {
+    let mut pids = [0u32; 2]; // Buffer for at least two PIDs
     // https://learn.microsoft.com/en-us/windows/console/getconsoleprocesslist
-    let mut buffer = [0u32; 1];
-    let rtn = unsafe { GetConsoleProcessList(&mut buffer) };
-    debug!(
-        "GetConsoleProcessList returned: {rtn}, inheriting console: {}",
-        rtn != 1
-    );
+    let count = unsafe { GetConsoleProcessList(pids.as_mut_slice()) };
 
-    rtn != 1
+    // count == 0: GetConsoleProcessList failed or no console is attached.
+    // count == 1: Only our process is attached (e.g., we called AllocConsole,
+    //             or a console app started in its own new window and we are that app).
+    // count > 1: More than one process, implies we inherited from a parent (e.g., shell).
+    let inheriting = count > 1;
+
+    #[cfg(debug_assertions)]
+    {
+        let msg = format!("GetConsoleProcessList count: {count}, inheriting: {inheriting}",);
+        let msg = msg
+            .encode_utf16()
+            .chain("\0".encode_utf16())
+            .collect::<Vec<u16>>();
+        let wstring = windows::core::PCWSTR(msg.as_ptr());
+        unsafe {
+            MessageBoxW(
+                None,
+                wstring,
+                w!("Console Check"),
+                MB_OK | MB_ICONINFORMATION,
+            );
+        }
+    }
+
+    // For very early diagnostics before tracing is set up:
+    // eprintln!("[is_inheriting_console] GetConsoleProcessList count: {count}, inheriting: {inheriting}");
+    inheriting
 }
 
-/// Handles console attachment/detachment logic for windows subsystem apps.
-/// Returns true if logs should go to the terminal, false if logs should go to buffer.
+/// Handles console attachment/detachment logic.
+/// Call this VERY EARLY, before logging or color_eyre is set up.
+/// Returns true if successfully attached to an inherited console (logs should go to terminal),
+/// false otherwise (e.g., double-clicked, logs to buffer).
 pub fn maybe_attach_or_hide_console() -> bool {
-    let mut ran_from_inherited_console = is_inheriting_console();
-    if ran_from_inherited_console {
+    let is_inherited = is_inheriting_console();
+
+    if is_inherited {
         unsafe {
-            // Try to attach to parent console (ATTACH_PARENT_PROCESS = u32::MAX)
-            if !AttachConsole(u32::MAX).is_ok() {
+            let mut attached_to_parent = false;
+            // ATTACH_PARENT_PROCESS is u32::MAX
+            if AttachConsole(u32::MAX).is_ok() {
+                attached_to_parent = true;
+                // eprintln!("[console] Attached to parent console.");
+            } else {
                 let error = GetLastError();
-                if error != ERROR_ACCESS_DENIED {
-                    // Only treat as failure if not "already attached"
+                if error == ERROR_ACCESS_DENIED {
+                    // Already attached, which is fine.
+                    attached_to_parent = true;
+                    // eprintln!("[console] Already attached to a console (ERROR_ACCESS_DENIED).");
+                } else {
                     eprintln!(
-                        "Warning: is_inheriting_console was true, but AttachConsole failed with error: {:?}",
+                        "[console] Warning: Detected inherited console, but AttachConsole failed (error: {:?}). Logs might not go to terminal.",
                         error
                     );
-                    ran_from_inherited_console = false;
+                    // Fall through, ran_from_inherited_console will be false.
                 }
+            }
+
+            if attached_to_parent {
+                // Crucial: Re-evaluate standard handles after AttachConsole
+                // This isn't explicitly done here but Windows should repoint them.
+                // Enable ANSI support for the attached console.
+                if let Err(e) = enable_ansi_support() {
+                    eprintln!(
+                        "[console] Warning: Failed to enable ANSI support for attached console: {:?}",
+                        e
+                    );
+                }
+                return true; // Successfully using inherited console
             }
         }
     } else {
-        // Not running from a terminal, so hide/detach the auto console if present
+        // Not inheriting a console (e.g., double-clicked a "windows" subsystem app,
+        // or a "console" subsystem app that got its own new console).
+        // If we are a "windows" subsystem app, no console was made for us by the OS. FreeConsole is a no-op.
+        // If we are a "console" subsystem app (OS made one), FreeConsole hides it.
+        // This FreeConsole call is primarily for the "console subsystem app, double-clicked" scenario.
+        // eprintln!("[console] Not inheriting console. Attempting FreeConsole.");
         unsafe {
-            info!("Attempting to detach from console (if any is attached)");
-            if let Err(e) = FreeConsole() {
-                debug!("FreeConsole failed (likely no console was attached): {}", e);
+            if FreeConsole().is_err() {
+                // This is expected if no console was attached (e.g. windows subsystem app)
+                // let error = GetLastError();
+                // eprintln!("[console] FreeConsole failed or was no-op (error: {:?}).", error);
             }
         }
     }
-    ran_from_inherited_console
+    false // Not using an inherited console
 }
 
 #[cfg(test)]
