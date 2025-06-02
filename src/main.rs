@@ -71,7 +71,7 @@ fn main() -> WindyResult<()> {
         eprintln!("Failed to install color_eyre: {:?}", e);
     }
 
-    eprintln!("Installing panic hook");
+    eprintln!("Installing main panic hook for tracing");
     let panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
         let msg = format!(

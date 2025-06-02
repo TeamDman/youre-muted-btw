@@ -3,12 +3,12 @@ use strum::VariantArray;
 
 #[derive(VariantArray, Clone, Copy, Eq, Debug, PartialEq)]
 pub enum Texture {
-    TargettingCircle,
+    Icon,
 }
 impl From<Texture> for AssetPath<'static> {
     fn from(value: Texture) -> Self {
         AssetPath::from_static(match value {
-            Texture::TargettingCircle => "textures/targetting_circle.png",
+            Texture::Icon => "textures/icon.png",
         })
     }
 }

@@ -96,7 +96,7 @@ fn handle_threadbound_message(
     reply_tx: &Sender<UIWorkerGameboundMessage>,
     state: &mut UIWorkerState,
 ) -> Result<()> {
-    info!("Handling threadbound message: {:?}", msg);
+    debug!("Handling threadbound message: {:?}", msg);
     match msg {
         UIWorkerThreadboundMessage::DetectMuteButtonState => {
             if state.mute_button.is_none() {
@@ -123,26 +123,30 @@ fn handle_threadbound_message(
             }
         }
     }
-    info!("Threadbound message handled successfully.");
+    debug!("Threadbound message handled successfully.");
     Ok(())
 }
 
 fn handle_gamebound_messages(
     mut messages: EventReader<UIWorkerGameboundMessage>,
-    mut mute_button: Query<&mut MuteButtonState, With<DiscordMuteButton>>,
+    mut mute_button: Query<&mut MuteButtonState>,
     mut commands: Commands,
 ) -> Result {
     for msg in messages.read() {
         match msg {
             UIWorkerGameboundMessage::MuteButtonObserved { state } => {
-                info!("Received mute button state: {:?}", state);
+                debug!("Received mute button state: {:?}", state);
                 if let Ok(mut toggle_state) = mute_button.single_mut() {
-                    *toggle_state = state.clone();
-                    info!("Updated toggle state: {:?}", toggle_state);
+                    if *toggle_state != *state {
+                        info!(
+                            "Toggle state changed from {:?} to {:?}",
+                            toggle_state, state
+                        );
+                        *toggle_state = state.clone();
+                    }
                 } else {
                     info!("Spawning new DiscordMuteButton with state: {:?}", state);
                     commands.spawn((
-                        DiscordMuteButton,
                         state.clone(),
                         Name::new(type_name::<DiscordMuteButton>()),
                     ));

@@ -4,9 +4,11 @@ use bevy::window::WindowResolution;
 use bevy_inspector_egui::bevy_egui::EguiContext;
 use bevy_inspector_egui::bevy_egui::EguiMultipassSchedule;
 use bevy_inspector_egui::egui;
+use ymb_assets::Texture;
 use ymb_ipc_plugin::BevyboundIPCMessage;
 use ymb_ipc_plugin::IpcWorkerGameboundMessage;
 use ymb_ui_automation::MuteButtonState;
+use ymb_window_icon_plugin::WindowIcon;
 
 #[derive(Event, Debug, Clone)]
 pub enum MuteStatusWindowEvent {
@@ -38,9 +40,8 @@ fn handle_ipc_toggle_window_event(
     mut events: EventWriter<MuteStatusWindowEvent>,
 ) {
     for msg in messages.read() {
-        if let IpcWorkerGameboundMessage::MessageReceived(
-            BevyboundIPCMessage::TrayIconClicked,
-        ) = msg
+        if let IpcWorkerGameboundMessage::MessageReceived(BevyboundIPCMessage::TrayIconClicked) =
+            msg
         {
             events.write(MuteStatusWindowEvent::ToggleWindow);
         }
@@ -59,6 +60,7 @@ fn handle_spawn_window_event(
     mut events: EventReader<MuteStatusWindowEvent>,
     mut commands: Commands,
     query: Query<Entity, With<MuteStatusWindow>>,
+    asset_server: Res<AssetServer>,
 ) {
     for event in events.read() {
         if let MuteStatusWindowEvent::SpawnWindow = event {
@@ -72,6 +74,7 @@ fn handle_spawn_window_event(
                     MuteStatusWindow,
                     Name::new("Mute Status Window"),
                     EguiMultipassSchedule::new(MuteStatusWindowEguiContextPass),
+                    WindowIcon::new(asset_server.load(Texture::Icon)),
                 ));
                 info!("Mute Status window spawned (event)");
             } else {

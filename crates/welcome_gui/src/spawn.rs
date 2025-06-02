@@ -128,8 +128,7 @@ fn spawn_gui_with_job(global_args: GlobalArgs, log_writer: DualLogWriter) -> eyr
     }
 
     // Wait for the GUI process to finish
-    let output = child.wait_with_output()?;
-    info!("Got: {output:#?}");
+    child.wait_with_output()?.exit_ok()?;
     Ok(())
 }
 

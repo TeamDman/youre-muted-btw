@@ -8,6 +8,39 @@ edition = "2024"
 license = "MPL-2.0"
 version = "0.1.0"
 
+[build-dependencies]
+embed-resource = "3.0.3"
+
+[profile.release]
+opt-level = "z"  # Optimize for size.
+lto = true
+strip = true  # Automatically strip symbols from the binary.
+codegen-units = 1
+panic = "abort"
+
+[package]
+name = "youre-muted-btw"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+clap.workspace = true
+color-eyre.workspace = true
+eyre.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+ymb_args.workspace = true
+ymb_tray.workspace = true
+ymb_windy.workspace = true
+ymb_logs.workspace = true
+ymb_console.workspace = true
+ymb_welcome_gui.workspace = true
+ymb_lifecycle.workspace = true
+
+
 [workspace.dependencies]
 ymb_args = { path = "crates/args" }
 ymb_tray = { path = "crates/tray" }
@@ -18,6 +51,7 @@ ymb_logs = { path = "crates/logs" }
 ymb_welcome_gui = { path = "crates/welcome_gui" }
 ymb_world_inspector_plugin = { path = "crates/world_inspector_plugin" }
 ymb_egui_plugin = { path = "crates/egui_plugin" }
+ymb_window_icon_plugin = { path = "crates/window_icon_plugin" }
 ymb_exit_on_esc_plugin = { path = "crates/exit_on_esc_plugin" }
 ymb_app_under_cursor_plugin = { path = "crates/app_under_cursor_plugin" }
 ymb_host_cursor_position_plugin = { path = "crates/host_cursor_position_plugin" }
@@ -75,35 +109,5 @@ winc = "0.3.0"
 ymb_ipc_plugin = { path = "crates/ipc_plugin" }
 uuid = { version = "1.8.0", features = ["v4"] }
 interprocess = "2.2.3"
-
-[package]
-name = "youre-muted-btw"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-authors.workspace = true
-repository.workspace = true
-
-[dependencies]
-clap.workspace = true
-color-eyre.workspace = true
-eyre.workspace = true
-tracing.workspace = true
-tracing-subscriber.workspace = true
-ymb_args.workspace = true
-ymb_tray.workspace = true
-ymb_windy.workspace = true
-ymb_logs.workspace = true
-ymb_console.workspace = true
-ymb_welcome_gui.workspace = true
-ymb_lifecycle.workspace = true
-
-[build-dependencies]
-embed-resource = "3.0.3"
-
-[profile.release]
-opt-level = "z"  # Optimize for size.
-lto = true
-strip = true  # Automatically strip symbols from the binary.
-codegen-units = 1
-panic = "abort"
+bevy_winit = "0.16.1"
+winit = { version = "0.30.11", default-features = false }

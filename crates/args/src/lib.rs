@@ -3,7 +3,7 @@ use clap::Subcommand;
 use std::ffi::OsString;
 
 #[derive(Debug, Parser)]
-#[command(name = "youre-muted-btw", bin_name = "youre-muted-btw")]
+#[command(name = "youre-muted-btw", bin_name = "youre-muted-btw", version= env!("CARGO_PKG_VERSION"))]
 pub struct Args {
     #[command(flatten)]
     pub global: GlobalArgs,

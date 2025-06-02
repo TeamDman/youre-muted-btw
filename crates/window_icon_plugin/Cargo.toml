@@ -1,0 +1,12 @@
+[package]
+name = "ymb_window_icon_plugin"
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+bevy.workspace=true
+bevy_winit.workspace=true
+winit.workspace=true

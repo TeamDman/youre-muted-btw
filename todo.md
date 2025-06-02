@@ -1,0 +1,8 @@
+- Mic picker
+- Mic voice activity detection
+- User-configurable response when voice activity detected while muted
+    - TTS
+    - Play sound
+        - Default sound
+        - User sound picker
+            - File drag and drop

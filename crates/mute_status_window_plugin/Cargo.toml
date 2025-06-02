@@ -12,3 +12,5 @@ bevy.workspace = true
 bevy-inspector-egui.workspace = true
 ymb_ipc_plugin.workspace = true
 ymb_ui_automation.workspace = true
+ymb_window_icon_plugin.workspace = true
+ymb_assets.workspace = true
