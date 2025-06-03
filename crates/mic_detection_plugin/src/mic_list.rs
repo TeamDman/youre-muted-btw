@@ -1,8 +1,8 @@
-use crate::mic_icon::get_mic_icon;
+use crate::mic_icon; // Import the module
 use crate::wcslen;
 use bevy::reflect::Reflect;
 use image::RgbaImage;
-use tracing::{debug, error, info}; // Added info
+use tracing::{debug, error, info, warn}; // Added warn
 use windows::Win32::Devices::Properties;
 use windows::Win32::Media::Audio::eCapture;
 use windows::Win32::Media::Audio::ERole;
@@ -13,7 +13,7 @@ use windows::Win32::Media::Audio::MMDeviceEnumerator;
 use windows::Win32::Media::Audio::DEVICE_STATE_ACTIVE;
 use windows::Win32::System::Com::CoCreateInstance;
 use windows::Win32::System::Com::CoInitializeEx;
-use windows::Win32::System::Com::CoUninitialize; // Added CoUninitialize
+use windows::Win32::System::Com::CoUninitialize;
 use windows::Win32::System::Com::CLSCTX_ALL;
 use windows::Win32::System::Com::COINIT_MULTITHREADED;
 use windows::Win32::System::Com::STGM_READ;
@@ -28,12 +28,12 @@ pub struct MicInfo {
     pub icon: Option<RgbaImage>,
 }
 
+// Define the generic microphone icon path (mmres.dll,-3012 is a common one)
+const GENERIC_MIC_ICON_PATH: &str = "%SystemRoot%\\system32\\mmres.dll,-3012";
+
 pub fn enumerate_mics_win() -> WindyResult<Vec<MicInfo>> {
     info!("Starting microphone enumeration (enumerate_mics_win)");
     unsafe {
-        // CoInitializeEx should ideally be handled by the worker thread's setup.
-        // If this function is only called from such a worker, this can be removed.
-        // For now, keeping it for self-containment of the function.
         if let Err(e) = CoInitializeEx(None, COINIT_MULTITHREADED).ok() {
             error!("enumerate_mics_win: CoInitializeEx failed: {:?}", e);
             return Err(e.into());
@@ -46,7 +46,7 @@ pub fn enumerate_mics_win() -> WindyResult<Vec<MicInfo>> {
             CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
         debug!("enumerate_mics_win: IMMDeviceEnumerator created.");
 
-        let default_device = enumerator.GetDefaultAudioEndpoint(eCapture, ERole(1))?; // ERole(1) is eConsole
+        let default_device = enumerator.GetDefaultAudioEndpoint(eCapture, ERole(1))?;
         debug!("enumerate_mics_win: Got default audio endpoint.");
         let default_id = default_device.GetId()?;
         debug!(
@@ -90,38 +90,97 @@ pub fn enumerate_mics_win() -> WindyResult<Vec<MicInfo>> {
                 i, name, is_default
             );
 
-            match get_mic_icon(&props, &name) {
-                Ok(icon_option) => {
-                    if icon_option.is_some() {
-                        debug!("enumerate_mics_win: Successfully got icon for '{}'.", name);
-                    } else {
-                        debug!("enumerate_mics_win: No icon available for '{}'.", name);
+            let mut final_icon_option: Option<RgbaImage> = None;
+
+            // 1. Try getting icon path from properties
+            match mic_icon::get_icon_path_from_properties(&props, &name) {
+                Ok(Some(path_str)) => {
+                    debug!(
+                        "Found icon path from properties for '{}': {}",
+                        name, path_str
+                    );
+                    match mic_icon::load_image_from_icon_path_string(&path_str, &name) {
+                        Ok(img_opt) => {
+                            if img_opt.is_some() {
+                                debug!("Successfully loaded icon from property path for '{}'", name);
+                            } else {
+                                warn!("Property path '{}' did not yield an image for '{}'. Will try generic.", path_str, name);
+                            }
+                            final_icon_option = img_opt;
+                        }
+                        Err(e) => {
+                            error!(
+                                "Error loading icon from property path '{}' for '{}': {:?}. Will try generic.",
+                                path_str, name, e
+                            );
+                        }
                     }
-                    mics.push(MicInfo {
-                        is_default,
-                        name,
-                        icon: icon_option,
-                    });
+                }
+                Ok(None) => {
+                    debug!(
+                        "No icon path found from properties for '{}'. Will try generic mmres.dll icon.",
+                        name
+                    );
+                    // final_icon_option remains None, will proceed to generic below
                 }
                 Err(e) => {
                     error!(
-                        "enumerate_mics_win: Error getting icon for device '{}': {:?}",
+                        "Error getting icon path from properties for '{}': {:?}. Will try generic.",
                         name, e
                     );
-                    mics.push(MicInfo {
-                        // Push even if icon fails, so device list is complete
-                        is_default,
-                        name,
-                        icon: None,
-                    });
+                    // final_icon_option remains None, will proceed to generic below
                 }
             }
+
+            // 2. If no icon from properties, try generic mmres.dll icon
+            if final_icon_option.is_none() {
+                debug!(
+                    "Attempting to load generic mmres.dll icon for '{}' using path: {}",
+                    name, GENERIC_MIC_ICON_PATH
+                );
+                match mic_icon::load_image_from_icon_path_string(GENERIC_MIC_ICON_PATH, &name)
+                {
+                    Ok(img_opt) => {
+                        if img_opt.is_some() {
+                            info!(
+                                "Successfully loaded generic mmres.dll icon for '{}'",
+                                name
+                            );
+                        } else {
+                            warn!(
+                                "Generic mmres.dll icon path did not yield an image for '{}'. No icon will be used.",
+                                name
+                            );
+                        }
+                        final_icon_option = img_opt;
+                    }
+                    Err(e) => {
+                        error!(
+                            "Error loading generic mmres.dll icon for '{}': {:?}",
+                            name, e
+                        );
+                        // final_icon_option remains None
+                    }
+                }
+            }
+
+            if final_icon_option.is_some() {
+                debug!("enumerate_mics_win: Successfully got an icon for '{}'.", name);
+            } else {
+                warn!("enumerate_mics_win: No icon could be loaded for '{}'.", name);
+            }
+
+            mics.push(MicInfo {
+                is_default,
+                name,
+                icon: final_icon_option,
+            });
         }
         Ok(mics)
     };
 
     unsafe {
-        CoUninitialize(); // Balance CoInitializeEx
+        CoUninitialize();
         debug!("enumerate_mics_win: CoUninitialize called.");
     }
     info!(
@@ -136,12 +195,10 @@ mod test {
     use super::*;
     use ymb_args::GlobalArgs;
     use ymb_logs::setup_tracing;
-    // Ensure MicInfo and enumerate_mics_win are in scope
-    use ymb_windy::WindyResult; // Ensure WindyResult is in scope
+    use ymb_windy::WindyResult;
 
     #[test]
     fn it_works() -> WindyResult<()> {
-        // Setup tracing for tests
         setup_tracing(&GlobalArgs { debug: true }, std::io::stdout)?;
 
         let mics = enumerate_mics_win()?;
@@ -153,12 +210,13 @@ mod test {
                     "  Icon dimensions: {}x{}, First pixel RGBA: {:?}",
                     icon.width(),
                     icon.height(),
-                    icon.get_pixel(0, 0) // Print first pixel to check data
+                    icon.get_pixel(0, 0)
                 );
-                // Optionally save the image to inspect it
-                // icon.save(format!("{}.png", mic.name.replace("/", "_").replace("\\", "_"))).unwrap();
+                 // Optionally save the image to inspect it
+                 // let safe_name = mic.name.replace(|c: char| !c.is_alphanumeric(), "_");
+                 // icon.save(format!("{}.png", safe_name)).unwrap();
             } else {
-                println!("  No icon available for this mic.");
+                println!("  No icon available for this mic (after all fallbacks).");
             }
         }
         Ok(())
