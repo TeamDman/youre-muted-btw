@@ -26,3 +26,4 @@ windows = { workspace = true, features = [
 ] }
 serde.workspace = true
 ymb_windy.workspace=true
+image.workspace=true
