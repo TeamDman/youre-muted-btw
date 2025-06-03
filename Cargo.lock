@@ -6681,6 +6681,8 @@ dependencies = [
  "serde",
  "tracing",
  "windows 0.61.1",
+ "ymb_args",
+ "ymb_logs",
  "ymb_windy",
  "ymb_worker_plugin",
 ]

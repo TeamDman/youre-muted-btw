@@ -1,6 +1,6 @@
 use std::error::Error;
 
-pub type WindyResult<T, E = WindyReport> = core::result::Result<T, E>;
+pub type WindyResult<T=(), E = WindyReport> = core::result::Result<T, E>;
 
 pub struct WindyReport {
     inner: eyre::Report,
