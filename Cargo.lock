@@ -6677,6 +6677,7 @@ name = "ymb_mic_detection_plugin"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "eyre",
  "image",
  "serde",
  "tracing",

@@ -27,6 +27,7 @@ windows = { workspace = true, features = [
 serde.workspace = true
 ymb_windy.workspace=true
 image.workspace=true
+eyre.workspace=true
 
 [dev-dependencies]
 ymb_logs.workspace=true

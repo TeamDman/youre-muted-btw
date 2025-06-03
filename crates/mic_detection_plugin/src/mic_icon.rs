@@ -1,12 +1,17 @@
+use crate::wcslen;
+use eyre::eyre;
 use image::RgbaImage;
-use windows::core::GUID;
-use windows::core::PWSTR;
+use tracing::{debug, error, warn}; // Added tracing
+use windows::core::{GUID, PCWSTR}; // Removed unused PWSTR
 use windows::Win32::Foundation::PROPERTYKEY;
 use windows::Win32::Graphics::Gdi::CreateCompatibleDC;
 use windows::Win32::Graphics::Gdi::DeleteDC;
 use windows::Win32::Graphics::Gdi::DeleteObject;
 use windows::Win32::Graphics::Gdi::GetDIBits;
 use windows::Win32::Graphics::Gdi::SelectObject;
+use windows::Win32::Graphics::Gdi::BITMAPINFOHEADER;
+use windows::Win32::Graphics::Gdi::BI_RGB;
+use windows::Win32::Graphics::Gdi::DIB_RGB_COLORS;
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Variant::VT_LPWSTR;
 use windows::Win32::UI::Shell::PropertiesSystem::IPropertyStore;
@@ -20,179 +25,309 @@ use windows::Win32::UI::WindowsAndMessaging::LR_LOADFROMFILE;
 use windows::Win32::UI::WindowsAndMessaging::LR_SHARED;
 use ymb_windy::WindyResult;
 
-use crate::wcslen;
-
 const PKEY_DEVICE_ICON: PROPERTYKEY = PROPERTYKEY {
     fmtid: GUID::from_u128(0x259abffc_507a_4ce8_8c10_9640b8a1c907),
     pid: 10,
 };
 
 pub fn get_mic_icon(props: &IPropertyStore, name: &str) -> WindyResult<Option<RgbaImage>> {
-    // Attempt to get the icon property
-    let mut icon_rgba: Option<Vec<u8>> = None;
+    debug!("Attempting to get icon for device: {}", name);
+    let mut icon_rgba_data: Option<Vec<u8>> = None;
     let mut icon_width = 0;
     let mut icon_height = 0;
-    let get_icon_result =
+
+    let get_icon_prop_result =
         unsafe { props.GetValue(&PKEY_DEVICE_ICON as *const _ as *const PROPERTYKEY) };
 
-    if let Ok(propvar) = get_icon_result {
-        // Ensure it's a string type
-        if unsafe { propvar.Anonymous.Anonymous.vt } == VT_LPWSTR {
-            let icon_path_str = unsafe { propvar.Anonymous.Anonymous.Anonymous.pwszVal.0 };
-            if !icon_path_str.is_null() {
-                let len = unsafe { wcslen(icon_path_str) };
-                let path = String::from_utf16_lossy(unsafe { std::slice::from_raw_parts(icon_path_str, len) });
+    match get_icon_prop_result {
+        Ok(propvar) => {
+            debug!(
+                "Successfully retrieved PKEY_DEVICE_ICON property for {}",
+                name
+            );
+            // Ensure it's a string type (VT_LPWSTR)
+            if unsafe { propvar.Anonymous.Anonymous.vt } == VT_LPWSTR {
+                let icon_path_pwstr = unsafe { propvar.Anonymous.Anonymous.Anonymous.pwszVal };
+                if !icon_path_pwstr.is_null() {
+                    let len = unsafe { wcslen(icon_path_pwstr.0) };
+                    let path_str = unsafe {
+                        String::from_utf16_lossy(std::slice::from_raw_parts(icon_path_pwstr.0, len))
+                    };
+                    debug!("Icon path string for {}: '{}'", name, path_str);
 
-                // Parse the path, e.g., "%SystemRoot%\System32\mmres.dll,-3012"
-                // This parsing is a bit naive and can be improved with regex or more robust string ops.
-                let parts: Vec<&str> = path.split(",-").collect();
-                if parts.len() == 2 {
-                    let dll_path = parts[0].replace(
-                        "%SystemRoot%",
-                        &std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".to_string()),
-                    );
-                    if let Ok(resource_id) = parts[1].parse::<i32>() {
-                        // Load the icon. Use LR_SHARED for caching, LR_DEFAULTSIZE for native size.
-                        // We are requesting ICON_SMALL (16x16) or ICON_BIG (32x32) first.
-                        // The system often provides multiple sizes for icons.
-                        let hicon = unsafe {
-                            LoadImageW(
-                                Some(
-                                    GetModuleHandleW(PWSTR::from_raw(
-                                        dll_path.as_ptr() as *mut u16
-                                    ))?
-                                    .into(),
-                                ), // Load from DLL specified
-                                PWSTR::from_raw(resource_id as *mut u16), // Resource ID
-                                IMAGE_ICON,
-                                0,                          // Desired width, 0 for default
-                                0,                          // Desired height, 0 for default
-                                LR_DEFAULTSIZE | LR_SHARED, // Flags: load default size and share
-                            )
-                        }?;
+                    let parts: Vec<&str> = path_str.split(",-").collect();
+                    if parts.len() == 2 {
+                        let dll_path_str = parts[0].replace(
+                            "%SystemRoot%",
+                            &std::env::var("SystemRoot")
+                                .unwrap_or_else(|_| "C:\\Windows".to_string()),
+                        );
+                        debug!("Parsed DLL path for {}: '{}'", name, dll_path_str);
 
-                        if hicon.is_invalid() {
-                            tracing::warn!("Failed to load icon for device '{}' from '{}', resource_id: {}. HICON was invalid.", name, dll_path, resource_id);
-                        } else {
-                            // Convert HICON to RGBA data
-                            match unsafe { hicon_to_rgba(&HICON(hicon.0)) } {
-                                Ok((rgba, w, h)) => {
-                                    icon_rgba = Some(rgba);
-                                    icon_width = w;
-                                    icon_height = h;
-                                }
-                                Err(e) => {
-                                    tracing::error!(
-                                        "Failed to convert HICON to RGBA for device '{}': {:?}",
-                                        name,
-                                        e
+                        if let Ok(resource_id) = parts[1].parse::<i32>() {
+                            debug!("Parsed resource ID for {}: {}", name, resource_id);
+
+                            let mut dll_path_u16: Vec<u16> = dll_path_str.encode_utf16().collect();
+                            dll_path_u16.push(0); // Null terminate
+
+                            unsafe {
+                                // Fix use of moved value: clone h_module before unwrap
+                                let h_module_result =
+                                    GetModuleHandleW(PCWSTR(dll_path_u16.as_ptr()));
+                                if h_module_result.is_err()
+                                    || h_module_result.as_ref().unwrap().is_invalid()
+                                {
+                                    warn!(
+                                        "Failed to get module handle for DLL '{}' for device {}: {:?}",
+                                        dll_path_str, name, h_module_result.err()
                                     );
+                                } else {
+                                    let h_module_ok = h_module_result.unwrap();
+                                    let hicon_handle = LoadImageW(
+                                        Some(std::mem::transmute(h_module_ok)),
+                                        MAKEINTRESOURCEW(resource_id as u16),
+                                        IMAGE_ICON,
+                                        0,
+                                        0,
+                                        LR_DEFAULTSIZE | LR_SHARED,
+                                    );
+
+                                    match hicon_handle {
+                                        Ok(hicon) if !hicon.is_invalid() => {
+                                            debug!("Successfully loaded HICON from resource for {}: {:?}", name, hicon);
+                                            match hicon_to_rgba(&HICON(hicon.0)) {
+                                                Ok((rgba, w, h)) => {
+                                                    icon_rgba_data = Some(rgba);
+                                                    icon_width = w;
+                                                    icon_height = h;
+                                                    debug!(
+                                                        "Converted HICON to RGBA for {}: {}x{}",
+                                                        name, w, h
+                                                    );
+                                                }
+                                                Err(e) => {
+                                                    error!("Failed to convert HICON (resource) to RGBA for {}: {:?}", name, e);
+                                                }
+                                            }
+                                        }
+                                        Ok(invalid_hicon) => {
+                                            // Valid handle but is_invalid() is true
+                                            warn!("LoadImageW from resource for {} returned an invalid HICON: {:?}. Error: {:?}", name, invalid_hicon, windows::core::Error::from_win32());
+                                        }
+                                        Err(e) => {
+                                            warn!(
+                                                "LoadImageW from resource for {} failed: {:?}",
+                                                name, e
+                                            );
+                                        }
+                                    }
                                 }
                             }
-                            // Destroy the icon if not LR_SHARED
-                            // DestroyIcon(HICON(hicon.0)); // Don't destroy if LR_SHARED
+                        } else {
+                            warn!(
+                                "Failed to parse resource ID from '{}' for device {}",
+                                parts[1], name
+                            );
                         }
-                    }
-                } else {
-                    tracing::warn!(
-                        "Unrecognized icon path format for device '{}': '{}'",
-                        name,
-                        path
-                    );
-                    // If it's a direct .ico file path, LoadImageW with LR_LOADFROMFILE could be used.
-                    // e.g., "C:\path\to\icon.ico"
-                    if path.to_lowercase().ends_with(".ico") {
-                        let hicon = unsafe {
-                            LoadImageW(
-                                None,
-                                PWSTR::from_raw(path.as_ptr() as *mut u16),
+                    } else if path_str.to_lowercase().ends_with(".ico") {
+                        debug!(
+                            "Icon path for {} appears to be a direct .ico file: '{}'",
+                            name, path_str
+                        );
+                        let mut path_u16: Vec<u16> = path_str.encode_utf16().collect();
+                        path_u16.push(0); // Null terminate
+
+                        unsafe {
+                            let hicon_handle = LoadImageW(
+                                None, // HINSTANCE is None for LR_LOADFROMFILE
+                                PCWSTR(path_u16.as_ptr()),
                                 IMAGE_ICON,
                                 0,
                                 0,
                                 LR_DEFAULTSIZE | LR_SHARED | LR_LOADFROMFILE,
-                            )
-                        }?;
-                        if hicon.is_invalid() {
-                            tracing::warn!("Failed to load icon from file path for device '{}': '{}'. HICON was invalid.", name, path);
-                        } else {
-                            match unsafe { hicon_to_rgba(&HICON(hicon.0)) } {
-                                Ok((rgba, w, h)) => {
-                                    icon_rgba = Some(rgba);
-                                    icon_width = w;
-                                    icon_height = h;
+                            );
+                            match hicon_handle {
+                                Ok(hicon) if !hicon.is_invalid() => {
+                                    debug!(
+                                        "Successfully loaded HICON from file for {}: {:?}",
+                                        name, hicon
+                                    );
+                                    match hicon_to_rgba(&HICON(hicon.0)) {
+                                        Ok((rgba, w, h)) => {
+                                            icon_rgba_data = Some(rgba);
+                                            icon_width = w;
+                                            icon_height = h;
+                                            debug!(
+                                                "Converted HICON to RGBA for {}: {}x{}",
+                                                name, w, h
+                                            );
+                                        }
+                                        Err(e) => {
+                                            error!("Failed to convert HICON (file) to RGBA for {}: {:?}", name, e);
+                                        }
+                                    }
+                                }
+                                Ok(invalid_hicon) => {
+                                    warn!("LoadImageW from file for {} returned an invalid HICON: {:?}. Error: {:?}", name, invalid_hicon, windows::core::Error::from_win32());
                                 }
                                 Err(e) => {
-                                    tracing::error!("Failed to convert HICON (from file) to RGBA for device '{}': {:?}", name, e);
+                                    warn!("LoadImageW from file for {} failed: {:?}", name, e);
                                 }
                             }
                         }
+                    } else {
+                        warn!("Unrecognized icon path format for {}: '{}'", name, path_str);
                     }
+                } else {
+                    debug!("Icon path string for {} is null", name);
                 }
+            } else {
+                debug!(
+                    "PKEY_DEVICE_ICON for {} is not a string (VT_LPWSTR). Actual type: {:?}",
+                    name,
+                    unsafe { propvar.Anonymous.Anonymous.vt }
+                );
             }
         }
-    } else {
-        tracing::debug!("No PKEY_DEVICE_ICON found for device: '{}'", name);
+        Err(e) => {
+            debug!(
+                "Failed to get PKEY_DEVICE_ICON property for {}: {:?}",
+                name, e
+            );
+        }
     }
 
-    let icon = icon_rgba.and_then(|rgba| RgbaImage::from_raw(icon_width, icon_height, rgba));
-    Ok(icon)
+    if let Some(rgba) = icon_rgba_data {
+        if icon_width > 0 && icon_height > 0 {
+            match RgbaImage::from_raw(icon_width, icon_height, rgba) {
+                Some(image) => {
+                    debug!("Successfully created RgbaImage for {}", name);
+                    Ok(Some(image))
+                }
+                None => {
+                    error!(
+                        "RgbaImage::from_raw failed for {} ({}x{}) despite having data.",
+                        name, icon_width, icon_height
+                    );
+                    Ok(None)
+                }
+            }
+        } else {
+            warn!(
+                "Icon for {} had data but invalid dimensions: {}x{}",
+                name, icon_width, icon_height
+            );
+            Ok(None)
+        }
+    } else {
+        debug!("No icon RGBA data retrieved for {}", name);
+        Ok(None)
+    }
 }
 
-// Function to convert HICON to RGBA data
-// This function needs to be added to `ymb_mic_detection_plugin/src/lib.rs`
 unsafe fn hicon_to_rgba(hicon: &HICON) -> WindyResult<(Vec<u8>, u32, u32)> {
-    // Get icon information
+    debug!("hicon_to_rgba: Starting conversion for HICON: {:?}", hicon);
     let mut icon_info = ICONINFO::default();
     if GetIconInfo(*hicon, &mut icon_info).is_err() {
-        return Err(windows::core::Error::from_win32().into());
+        let err = windows::core::Error::from_win32();
+        error!("hicon_to_rgba: GetIconInfo failed: {:?}", err);
+        return Err(err.into());
     }
-
-    // icon_info.hbmColor is the color bitmap
-    // icon_info.hbmMask is the monochrome mask bitmap (for transparency)
-    // If hbmMask is NULL (or equal to hbmColor), it's a 32-bit icon with alpha channel
-    // If hbmMask is separate, it's a 24-bit icon and mask needs to be applied.
+    debug!(
+        "hicon_to_rgba: GetIconInfo success. hbmColor: {:?}, hbmMask: {:?}",
+        icon_info.hbmColor, icon_info.hbmMask
+    );
 
     let hbm_color = icon_info.hbmColor;
     let hbm_mask = icon_info.hbmMask;
 
-    // Get bitmap info to determine width, height, and bit depth
-    let mut bitmap_info = windows::Win32::Graphics::Gdi::BITMAP::default();
+    let mut bitmap_info_header = BITMAPINFOHEADER::default();
     if windows::Win32::Graphics::Gdi::GetObjectW(
         hbm_color.into(),
         std::mem::size_of::<windows::Win32::Graphics::Gdi::BITMAP>() as i32,
-        Some(&mut bitmap_info as *mut _ as *mut std::ffi::c_void),
+        Some(&mut bitmap_info_header as *mut _ as *mut std::ffi::c_void),
     ) == 0
     {
-        let _ = DeleteObject(hbm_color.into());
-        let _ = DeleteObject(hbm_mask.into());
-        return Err(windows::core::Error::from_win32().into());
+        let mut bitmap_struct = windows::Win32::Graphics::Gdi::BITMAP::default();
+        if windows::Win32::Graphics::Gdi::GetObjectW(
+            hbm_color.into(),
+            std::mem::size_of::<windows::Win32::Graphics::Gdi::BITMAP>() as i32,
+            Some(&mut bitmap_struct as *mut _ as *mut std::ffi::c_void),
+        ) == 0
+        {
+            let err = windows::core::Error::from_win32();
+            error!("hicon_to_rgba: GetObjectW (for BITMAP) failed: {:?}", err);
+            let _ = DeleteObject(hbm_color.into());
+            if hbm_mask.0 != std::ptr::null_mut() {
+                let _ = DeleteObject(hbm_mask.into());
+            }
+            return Err(err.into());
+        }
+        debug!(
+            "hicon_to_rgba: GetObjectW (BITMAP) success. Width: {}, Height: {}, BitsPixel: {}",
+            bitmap_struct.bmWidth, bitmap_struct.bmHeight, bitmap_struct.bmBitsPixel
+        );
+        bitmap_info_header.biWidth = bitmap_struct.bmWidth;
+        bitmap_info_header.biHeight = bitmap_struct.bmHeight;
+        bitmap_info_header.biBitCount = bitmap_struct.bmBitsPixel;
+    } else {
+        debug!("hicon_to_rgba: GetObjectW with BITMAPINFOHEADER (unusual path). Width: {}, Height: {}, BitsPixel: {}", bitmap_info_header.biWidth, bitmap_info_header.biHeight, bitmap_info_header.biBitCount);
     }
 
-    let width = bitmap_info.bmWidth as u32;
-    let height = bitmap_info.bmHeight as u32;
-    let bpp = bitmap_info.bmBitsPixel;
+    let width = bitmap_info_header.biWidth.abs() as u32;
+    let height = bitmap_info_header.biHeight.abs() as u32;
+    let bpp = bitmap_info_header.biBitCount;
+
+    debug!(
+        "hicon_to_rgba: Determined dimensions: {}x{} @ {}bpp",
+        width, height, bpp
+    );
+
+    if width == 0 || height == 0 {
+        error!("hicon_to_rgba: Icon dimensions are zero.");
+        let _ = DeleteObject(hbm_color.into());
+        if hbm_mask.0 != std::ptr::null_mut() {
+            let _ = DeleteObject(hbm_mask.into());
+        }
+        return Err(eyre!("Icon has zero width or height").into());
+    }
 
     let mut rgba_data = vec![0u8; (width * height * 4) as usize];
 
-    // Create a compatible DC
     let screen_dc = windows::Win32::Graphics::Gdi::GetDC(None);
+    if screen_dc.is_invalid() {
+        let err = windows::core::Error::from_win32();
+        error!("hicon_to_rgba: GetDC(None) failed: {:?}", err);
+        let _ = DeleteObject(hbm_color.into());
+        if hbm_mask.0 != std::ptr::null_mut() {
+            let _ = DeleteObject(hbm_mask.into());
+        }
+        return Err(err.into());
+    }
     let mem_dc = CreateCompatibleDC(Some(screen_dc));
+    if mem_dc.is_invalid() {
+        let err = windows::core::Error::from_win32();
+        error!("hicon_to_rgba: CreateCompatibleDC failed: {:?}", err);
+        let _ = windows::Win32::Graphics::Gdi::ReleaseDC(None, screen_dc);
+        let _ = DeleteObject(hbm_color.into());
+        if hbm_mask.0 != std::ptr::null_mut() {
+            let _ = DeleteObject(hbm_mask.into());
+        }
+        return Err(err.into());
+    }
+
     let old_bitmap = SelectObject(mem_dc, hbm_color.into());
 
-    // Get the bits. DIB_RGB_COLORS for palette colors.
-    // DIB_RGB_COLORS should be specified if the biCompression member is BI_RGB and the biBitCount member is less than 16.
-    // For 32-bit (BI_RGB, 32-bit color), we expect BGRA directly.
     let mut bmi = windows::Win32::Graphics::Gdi::BITMAPINFO::default();
     bmi.bmiHeader.biSize =
         std::mem::size_of::<windows::Win32::Graphics::Gdi::BITMAPINFOHEADER>() as u32;
     bmi.bmiHeader.biWidth = width as i32;
-    bmi.bmiHeader.biHeight = -(height as i32); // Negative height for top-down DIB
+    bmi.bmiHeader.biHeight = -(height as i32);
     bmi.bmiHeader.biPlanes = 1;
-    bmi.bmiHeader.biBitCount = 32; // Request 32-bit RGBA for consistency
-    bmi.bmiHeader.biCompression = windows::Win32::Graphics::Gdi::BI_RGB.0;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB.0 as u32;
 
-    // let bytes_per_row = (width * 4 + 3) & !3; // Ensure 4-byte alignment (unused)
-
+    debug!("hicon_to_rgba: Calling GetDIBits for color bitmap.");
     if GetDIBits(
         mem_dc,
         hbm_color,
@@ -200,136 +335,94 @@ unsafe fn hicon_to_rgba(hicon: &HICON) -> WindyResult<(Vec<u8>, u32, u32)> {
         height,
         Some(rgba_data.as_mut_ptr() as *mut std::ffi::c_void),
         &mut bmi,
-        windows::Win32::Graphics::Gdi::DIB_RGB_COLORS,
+        DIB_RGB_COLORS,
     ) == 0
     {
+        let err = windows::core::Error::from_win32();
+        error!(
+            "hicon_to_rgba: GetDIBbits for color bitmap failed: {:?}",
+            err
+        );
         SelectObject(mem_dc, old_bitmap);
         let _ = DeleteDC(mem_dc);
+        let _ = windows::Win32::Graphics::Gdi::ReleaseDC(None, screen_dc);
         let _ = DeleteObject(hbm_color.into());
-        let _ = DeleteObject(hbm_mask.into());
-        return Err(windows::core::Error::from_win32().into());
+        if hbm_mask.0 != std::ptr::null_mut() {
+            let _ = DeleteObject(hbm_mask.into());
+        }
+        return Err(err.into());
     }
+    debug!("hicon_to_rgba: GetDIBits for color bitmap success.");
 
     SelectObject(mem_dc, old_bitmap);
-    let _ = DeleteDC(mem_dc);
-    let _ = DeleteObject(hbm_color.into());
 
-    // If mask is separate, apply it for transparency.
-    // This is often needed for 24-bit icons or icons that don't have an explicit alpha channel.
-    // For 32-bit icons, hbmMask is often equal to hbmColor or NULL if the alpha channel is embedded.
     if hbm_mask.0 != std::ptr::null_mut() && hbm_mask.0 != hbm_color.0 {
-        let mut mask_rgba = vec![0u8; (width * height * 4) as usize];
-        let mem_dc_mask = CreateCompatibleDC(Some(screen_dc));
-        let old_mask_bitmap = SelectObject(mem_dc_mask, hbm_mask.into());
+        debug!(
+            "hicon_to_rgba: Processing separate mask bitmap: {:?}",
+            hbm_mask
+        );
+        let mut mask_pixel_data = vec![0u8; (width * height * 4) as usize];
 
-        let mut mask_bmi = windows::Win32::Graphics::Gdi::BITMAPINFO::default();
-        mask_bmi.bmiHeader.biSize =
-            std::mem::size_of::<windows::Win32::Graphics::Gdi::BITMAPINFOHEADER>() as u32;
-        mask_bmi.bmiHeader.biWidth = width as i32;
-        mask_bmi.bmiHeader.biHeight = -(height as i32);
-        mask_bmi.bmiHeader.biPlanes = 1;
-        mask_bmi.bmiHeader.biBitCount = 32;
-        mask_bmi.bmiHeader.biCompression = windows::Win32::Graphics::Gdi::BI_RGB.0;
+        let old_mask_bitmap = SelectObject(mem_dc, hbm_mask.into());
 
+        bmi.bmiHeader.biHeight = -(height as i32);
+
+        debug!("hicon_to_rgba: Calling GetDIBits for mask bitmap.");
         if GetDIBits(
-            mem_dc_mask,
+            mem_dc,
             hbm_mask,
             0,
             height,
-            Some(mask_rgba.as_mut_ptr() as *mut std::ffi::c_void),
-            &mut mask_bmi,
-            windows::Win32::Graphics::Gdi::DIB_RGB_COLORS,
+            Some(mask_pixel_data.as_mut_ptr() as *mut std::ffi::c_void),
+            &mut bmi,
+            DIB_RGB_COLORS,
         ) == 0
         {
-            SelectObject(mem_dc_mask, old_mask_bitmap);
-            let _ = DeleteDC(mem_dc_mask);
-            let _ = DeleteObject(hbm_mask.into());
-            // We can still return the image without mask if this fails
-            tracing::error!("Failed to get mask bits. Icon transparency may be incorrect.");
+            let err = windows::core::Error::from_win32();
+            error!("hicon_to_rgba: GetDIBits for mask bitmap failed: {:?}", err);
         } else {
-            // Apply mask to color data (BGRA to RGBA conversion also happens here)
-            for y in 0..height {
-                for x in 0..width {
-                    let pixel_idx = ((y * width + x) * 4) as usize;
-                    let mask_idx = ((y * width + x) * 4) as usize;
-
-                    // BGRA to RGBA (Windows gives BGRA)
-                    let b = rgba_data[pixel_idx];
-                    let g = rgba_data[pixel_idx + 1];
-                    let r = rgba_data[pixel_idx + 2];
-                    // Alpha is typically rgba_data[pixel_idx + 3] for 32-bit icons
-
-                    // The mask bitmap is monochrome: black (0) for transparent, white (255) for opaque.
-                    // The mask bitmap's color channels will all be the same (0 or 255).
-                    let mask_alpha = mask_rgba[mask_idx]; // Or mask_rgba[mask_idx+1], etc.
-
-                    // If the original icon was 32-bit with alpha, it's already there.
-                    // If it was 24-bit, its alpha might be 0, and we use the mask for alpha.
-                    // Combine original alpha with mask alpha.
-                    // Max of existing alpha and mask alpha (inverted, as 0 means transparent in mask)
-                    let final_alpha = if bpp == 32 {
-                        // For 32-bit icons, the alpha channel is in rgba_data[pixel_idx + 3]
-                        // And the hbmMask might actually be the inverse or combined with alpha
-                        // A common pattern is hbmMask is the alpha channel itself.
-                        // For simplicity, we'll assume BGRA and use the mask as the alpha if present and not fully opaque/transparent.
-                        // If it's a true 32-bit icon, rgba_data[pixel_idx + 3] already contains alpha.
-                        // We use `!mask_alpha` because black in mask means transparent.
-                        let original_alpha = rgba_data[pixel_idx + 3];
-                        if mask_alpha == 0 {
-                            // black in mask means transparent
-                            0 // fully transparent if mask is black
-                        } else {
-                            original_alpha // use original alpha if mask is not black (opaque)
-                        }
-                    } else {
-                        // For 24-bit icons, the mask provides the alpha.
-                        // Black (0) in the mask means the pixel is transparent.
-                        // White (255) in the mask means the pixel is opaque.
-                        !mask_alpha // Invert mask for alpha: 0 (black) -> 255 (opaque), 255 (white) -> 0 (transparent)
-                    };
-
-                    rgba_data[pixel_idx] = r; // R
-                    rgba_data[pixel_idx + 1] = g; // G
-                    rgba_data[pixel_idx + 2] = b; // B
-                    rgba_data[pixel_idx + 3] = final_alpha; // A
+            debug!("hicon_to_rgba: GetDIBits for mask bitmap success. Applying mask.");
+            for i in 0..(width * height) as usize {
+                let pixel_idx = i * 4;
+                if mask_pixel_data[pixel_idx] == 0
+                    && mask_pixel_data[pixel_idx + 1] == 0
+                    && mask_pixel_data[pixel_idx + 2] == 0
+                {
+                    rgba_data[pixel_idx + 3] = 0;
+                } else if bpp != 32 && rgba_data[pixel_idx + 3] == 0 {
+                    rgba_data[pixel_idx + 3] = 255;
                 }
             }
         }
-        SelectObject(mem_dc_mask, old_mask_bitmap);
-        let _ = DeleteDC(mem_dc_mask);
+        SelectObject(mem_dc, old_mask_bitmap);
         let _ = DeleteObject(hbm_mask.into());
     } else {
-        // If no separate mask, or mask is same as color bitmap, assume alpha is embedded for 32-bit
-        // or no transparency for less than 32-bit.
-        // Convert BGRA to RGBA if necessary.
-        if bpp == 32 {
+        debug!("hicon_to_rgba: No separate mask bitmap or mask is same as color.");
+        if bpp != 32 {
             for i in 0..(width * height) as usize {
-                let pixel_idx = i * 4;
-                let b = rgba_data[pixel_idx];
-                let r = rgba_data[pixel_idx + 2];
-                rgba_data[pixel_idx] = r;
-                rgba_data[pixel_idx + 2] = b;
-                // Alpha is already rgba_data[pixel_idx + 3]
-            }
-        } else {
-            // For 24-bit or less, assume opaque if no mask was found.
-            // We've already read as 32-bit, so add full alpha if original was < 32-bit.
-            for i in 0..(width * height) as usize {
-                let pixel_idx = i * 4;
-                let b = rgba_data[pixel_idx];
-                let r = rgba_data[pixel_idx + 2];
-                rgba_data[pixel_idx] = r;
-                rgba_data[pixel_idx + 2] = b;
-                rgba_data[pixel_idx + 3] = 255; // Fully opaque
+                rgba_data[i * 4 + 3] = 255;
             }
         }
     }
 
-    // Release the DC for the screen, as it's no longer needed for GDI operations.
-    // Note: GetDC(HWND::default()) gets the DC for the entire screen, not a specific window.
-    // It should be released when no longer needed.
-    // There is no explicit `ReleaseDC` needed when `GetDC(HWND::default())` was used.
-    // `DeleteDC` is for memory DCs created by `CreateCompatibleDC`.
+    let _ = DeleteDC(mem_dc);
+    let _ = windows::Win32::Graphics::Gdi::ReleaseDC(None, screen_dc);
+    let _ = DeleteObject(hbm_color.into());
+
+    for i in 0..(width * height) as usize {
+        let pixel_idx = i * 4;
+        let b = rgba_data[pixel_idx];
+        let r = rgba_data[pixel_idx + 2];
+        rgba_data[pixel_idx] = r;
+        rgba_data[pixel_idx + 2] = b;
+    }
+    debug!("hicon_to_rgba: BGRA to RGBA conversion complete.");
 
     Ok((rgba_data, width, height))
+}
+
+// Fix MAKEINTRESOURCEW: define it if not present
+#[allow(non_snake_case)]
+fn MAKEINTRESOURCEW(i: u16) -> windows::core::PCWSTR {
+    windows::core::PCWSTR(i as usize as *const u16)
 }
