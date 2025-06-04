@@ -30,6 +30,9 @@ impl Plugin for YMBWorldInspectorPlugin {
         app.add_systems(Update, handle_spawn_window_event);
         app.add_systems(Update, handle_despawn_window_event);
         app.add_systems(Update, handle_toggle_window_event);
+        app.add_systems(Startup, |mut events: EventWriter<WorldInspectorWindowEvent>| {
+            events.write(WorldInspectorWindowEvent::SpawnWindow);
+        });
     }
 }
 

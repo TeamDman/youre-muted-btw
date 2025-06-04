@@ -136,7 +136,8 @@ fn handle_gamebound_messages(
         match msg {
             UIWorkerGameboundMessage::MuteButtonObserved { state } => {
                 debug!("Received mute button state: {:?}", state);
-                if let Ok(mut toggle_state) = mute_button.single_mut() {
+                let existing = mute_button.single_mut() ;
+                if let Ok(mut toggle_state) = existing {
                     if *toggle_state != *state {
                         info!(
                             "Toggle state changed from {:?} to {:?}",
@@ -145,6 +146,7 @@ fn handle_gamebound_messages(
                         *toggle_state = state.clone();
                     }
                 } else {
+                    info!("No existing MuteButtonState found, spawning new one. Error was {:?}", existing.err().unwrap());
                     info!("Spawning new DiscordMuteButton with state: {:?}", state);
                     commands.spawn((
                         state.clone(),

@@ -91,28 +91,36 @@ pub fn enumerate_mics_win() -> WindyResult<Vec<MicInfo>> {
             );
 
             let mut final_icon_option: Option<RgbaImage> = None;
+            let mut icon_source_debug_info;
 
             // 1. Try getting icon path from properties
             match mic_icon::get_icon_path_from_properties(&props, &name) {
                 Ok(Some(path_str)) => {
-                    debug!(
-                        "Found icon path from properties for '{}': {}",
+                    info!(
+                        "Icon path from properties for '{}': {}",
                         name, path_str
                     );
+                    icon_source_debug_info = format!("Properties: {}", path_str);
                     match mic_icon::load_image_from_icon_path_string(&path_str, &name) {
                         Ok(img_opt) => {
                             if img_opt.is_some() {
                                 debug!("Successfully loaded icon from property path for '{}'", name);
+                                icon_source_debug_info.push_str(" (Loaded successfully)");
                             } else {
-                                warn!("Property path '{}' did not yield an image for '{}'. Will try generic.", path_str, name);
+                                warn!(
+                                    "Property path {} did not yield an image for '{}'. Will try generic.",
+                                    path_str, name
+                                );
+                                icon_source_debug_info.push_str(" (Failed to load from this path)");
                             }
                             final_icon_option = img_opt;
                         }
                         Err(e) => {
                             error!(
-                                "Error loading icon from property path '{}' for '{}': {:?}. Will try generic.",
+                                "Error loading icon from property path {} for '{}': {:?}. Will try generic.",
                                 path_str, name, e
                             );
+                            icon_source_debug_info.push_str(&format!(" (Error loading: {:?})", e));
                         }
                     }
                 }
@@ -121,53 +129,65 @@ pub fn enumerate_mics_win() -> WindyResult<Vec<MicInfo>> {
                         "No icon path found from properties for '{}'. Will try generic mmres.dll icon.",
                         name
                     );
-                    // final_icon_option remains None, will proceed to generic below
+                    icon_source_debug_info = "No property path found".to_string();
                 }
                 Err(e) => {
                     error!(
                         "Error getting icon path from properties for '{}': {:?}. Will try generic.",
                         name, e
                     );
-                    // final_icon_option remains None, will proceed to generic below
+                    icon_source_debug_info = format!("Error getting property path: {:?}", e);
                 }
             }
 
-            // 2. If no icon from properties, try generic mmres.dll icon
+            // 2. If no icon from properties (or loading failed), try generic mmres.dll icon
             if final_icon_option.is_none() {
+                let prev_source_info = icon_source_debug_info.clone();
+                icon_source_debug_info = format!(
+                    "{} -> Fallback: {}",
+                    prev_source_info, GENERIC_MIC_ICON_PATH
+                );
                 debug!(
                     "Attempting to load generic mmres.dll icon for '{}' using path: {}",
                     name, GENERIC_MIC_ICON_PATH
                 );
-                match mic_icon::load_image_from_icon_path_string(GENERIC_MIC_ICON_PATH, &name)
-                {
+                match mic_icon::load_image_from_icon_path_string(GENERIC_MIC_ICON_PATH, &name) {
                     Ok(img_opt) => {
                         if img_opt.is_some() {
                             info!(
-                                "Successfully loaded generic mmres.dll icon for '{}'",
+                                "Successfully loaded generic mmres.dll icon for {}",
                                 name
                             );
+                            icon_source_debug_info.push_str(" (Loaded successfully)");
                         } else {
                             warn!(
-                                "Generic mmres.dll icon path did not yield an image for '{}'. No icon will be used.",
+                                "Generic mmres.dll icon path did not yield an image for {}. No icon will be used.",
                                 name
                             );
+                            icon_source_debug_info.push_str(" (Failed to load from this path)");
                         }
                         final_icon_option = img_opt;
                     }
                     Err(e) => {
                         error!(
-                            "Error loading generic mmres.dll icon for '{}': {:?}",
+                            "Error loading generic mmres.dll icon for {}: {:?}",
                             name, e
                         );
-                        // final_icon_option remains None
+                        icon_source_debug_info.push_str(&format!(" (Error loading: {:?})", e));
                     }
                 }
             }
 
             if final_icon_option.is_some() {
-                debug!("enumerate_mics_win: Successfully got an icon for '{}'.", name);
+                info!(
+                    "Final icon for {} successfully loaded. Source details: [{}]",
+                    name, icon_source_debug_info
+                );
             } else {
-                warn!("enumerate_mics_win: No icon could be loaded for '{}'.", name);
+                warn!(
+                    "No icon could be loaded for {}. Source details: [{}]",
+                    name, icon_source_debug_info
+                );
             }
 
             mics.push(MicInfo {
