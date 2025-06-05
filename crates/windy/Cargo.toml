@@ -10,3 +10,5 @@ repository.workspace = true
 eyre.workspace=true
 clap.workspace=true
 windows.workspace=true
+widestring.workspace=true
+bstr.workspace=true

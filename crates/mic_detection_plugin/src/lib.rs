@@ -1,5 +1,9 @@
 pub mod mic_icon;
 pub mod mic_list;
+pub mod windows_macros;
+pub mod hicon_to_image;
+pub mod icon_path;
+pub mod load_icon_from_dll;
 
 use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;

@@ -18,7 +18,7 @@ use windows::Win32::System::Com::CLSCTX_ALL;
 use windows::Win32::System::Com::COINIT_MULTITHREADED;
 use windows::Win32::System::Com::STGM_READ;
 use windows::Win32::UI::Shell::PropertiesSystem::IPropertyStore;
-use ymb_windy::WindyResult;
+use ymb_windy::error::WindyResult;
 
 #[derive(Debug, Clone, Reflect)]
 pub struct MicInfo {
@@ -29,7 +29,7 @@ pub struct MicInfo {
 }
 
 // Define the generic microphone icon path (mmres.dll,-3012 is a common one)
-const GENERIC_MIC_ICON_PATH: &str = "%SystemRoot%\\system32\\mmres.dll,-3012";
+const GENERIC_MIC_ICON_PATH: &str = "@%SystemRoot%\\system32\\mmres.dll,-3012";
 
 pub fn enumerate_mics_win() -> WindyResult<Vec<MicInfo>> {
     info!("Starting microphone enumeration (enumerate_mics_win)");
@@ -215,7 +215,7 @@ mod test {
     use super::*;
     use ymb_args::GlobalArgs;
     use ymb_logs::setup_tracing;
-    use ymb_windy::WindyResult;
+    use ymb_windy::error::WindyResult;
 
     #[test]
     fn it_works() -> WindyResult<()> {

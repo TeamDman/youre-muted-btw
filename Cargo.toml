@@ -116,3 +116,5 @@ interprocess = "2.2.3"
 bevy_winit = "0.16.1"
 winit = { version = "0.30.11", default-features = false }
 image = "0.25.6"
+widestring = "1.2.0"
+bstr = "1.12.0"

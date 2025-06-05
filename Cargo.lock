@@ -1687,6 +1687,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "234113d19d0d7d613b40e86fb654acf958910802bcceab913a4f9e7cda03b1a4"
+dependencies = [
+ "memchr",
+ "regex-automata 0.4.9",
+ "serde",
+]
+
+[[package]]
 name = "built"
 version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6677,10 +6688,12 @@ name = "ymb_mic_detection_plugin"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bstr",
  "eyre",
  "image",
  "serde",
  "tracing",
+ "widestring",
  "windows 0.61.1",
  "ymb_args",
  "ymb_logs",
@@ -6778,8 +6791,10 @@ dependencies = [
 name = "ymb_windy"
 version = "0.1.0"
 dependencies = [
+ "bstr",
  "clap",
  "eyre",
+ "widestring",
  "windows 0.61.1",
 ]
 

@@ -9,7 +9,7 @@ use ymb_args::Command;
 use ymb_console::is_inheriting_console;
 use ymb_logs::DualLogWriter;
 use ymb_logs::setup_tracing;
-use ymb_windy::WindyResult;
+use ymb_windy::error::WindyResult;
 
 const DETACHED_PROCESS: u32 = 0x00000008;
 const CREATE_NO_WINDOW: u32 = 0x08000000;

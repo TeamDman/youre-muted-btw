@@ -23,7 +23,7 @@ use ymb_lifecycle::OUR_HWND;
 use ymb_lifecycle::SHOULD_SHOW_HIDE_LOGS_TRAY_ACTION;
 use ymb_logs::DualLogWriter;
 use ymb_logs::LogBuffer;
-use ymb_windy::WindyResult;
+use ymb_windy::error::WindyResult;
 
 const WM_TRAYICON: u32 = WM_USER + 1;
 const ID_TRAYICON: u32 = 1;

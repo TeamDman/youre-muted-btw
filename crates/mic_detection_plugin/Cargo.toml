@@ -22,12 +22,15 @@ windows = { workspace = true, features = [
     "Win32_Security",
     "Win32_System_SystemServices",
     "Win32_System_WindowsProgramming",
-    "Win32_Media_Multimedia"
+    "Win32_Media_Multimedia",
+    "Win32_System_Environment"
 ] }
 serde.workspace = true
 ymb_windy.workspace=true
 image.workspace=true
 eyre.workspace=true
+widestring.workspace=true
+bstr.workspace=true
 
 [dev-dependencies]
 ymb_logs.workspace=true
